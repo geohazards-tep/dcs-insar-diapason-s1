@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<application xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="my_application">
+  <jobTemplates>
+    <jobTemplate id="aux_swath">
+      <streamingExecutable>/application/aux_swath/run.sh</streamingExecutable>
+      <defaultParameters>
+	<parameter id="pol">VV</parameter>
+      </defaultParameters>
+    </jobTemplate>
+    <jobTemplate id="aux_burst">
+      <streamingExecutable>/application/aux_burst/run.sh</streamingExecutable>
+    </jobTemplate>
+    <jobTemplate id="coreg_burst">
+      <streamingExecutable>/application/coreg/run.sh</streamingExecutable>
+    </jobTemplate>
+    <jobTemplate id="interf">
+      <streamingExecutable>/application/interf/run.sh</streamingExecutable>
+      <defaultJobconf>       
+	<property id="ciop.job.max.tasks">1</property>
+        <property id="mapred.task.timeout">7200000</property>                      
+      </defaultJobconf>
+    </jobTemplate> 
+  </jobTemplates>
+    <workflow id="dcs-diapason-s1" title="Sentinel-1 InSAR processing" abstract="Sentinel-1 Interferogram generation with DIAPASON" >
+    <workflowVersion>1.0</workflowVersion>
+    <node id="node_swath">
+      <job id="aux_swath"/>
+      <sources>
+        <source refid="file:urls">/home/pordoqui/S1/inputs/fogo</source>
+      </sources>
+    </node>
+    <node id="node_burst">
+      <job id="aux_burst"/>
+      <sources>
+        <source refid="wf:node">node_swath</source>
+	<!--<source refid="file:urls">/home/pordoqui/S1/inputs/piton_sw2</source>-->
+      </sources>
+    </node>
+    <node id="node_coreg">
+      <job id="coreg_burst" />
+      <sources>
+	<source refid="wf:node">node_burst</source>
+	<!--<source refid="file:urls">/home/pordoqui/S1/inputs/piton_burst</source>-->
+      </sources>
+    </node>
+        <node id="node_interf">
+      <job id="interf" />
+      <sources>
+	<source refid="wf:node">node_coreg</source>
+	<!--<source refid="file:urls">/home/pordoqui/S1/inputs/interf</source>-->
+      </sources>
+    </node>
+  </workflow>
+</application>
