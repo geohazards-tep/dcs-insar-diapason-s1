@@ -73,8 +73,14 @@ function main()
 
     ciop-log "INFO" "created processing directory ${serverdir}"
 
+    #get the workflow id to pass to ciop-browseresults
+    local wkid=${_WF_ID}
+    
+    ciop-log "INFO" "wkid is ${wkid}"
+
+
     #look for the dem
-    local publishdem=`ciop-browseresults  -j node_burst | grep dem_${swathmaster}.tif | head -1`
+    local publishdem=`ciop-browseresults  -r ${wkid}  -j node_burst | grep dem_${swathmaster}.tif | head -1`
 
     if [ -z "${publishdem}" ]; then
 	ciop-log "INFO" "unable to locate dem from previous node for swath ${swathmaster}"
@@ -116,7 +122,7 @@ function main()
     fi
 
     #master & slave are assumed to be safe directory names published by node_swath
-    pubmaster=`ciop-browseresults -j node_swath | grep ${inputdata[0]} | head -1`
+    pubmaster=`ciop-browseresults -r ${wkid} -j node_swath | grep ${inputdata[0]} | head -1`
     
     if [ -z "${pubmaster}" ]; then
 	ciop-log "ERROR" "Failed to locate master safe"
@@ -137,7 +143,7 @@ function main()
     ciop-log "INFO" "local master is $master"
  
        #now get the slave safe 
-    pubslave=`ciop-browseresults -j node_swath | grep ${inputdata[4]} | head -1`
+    pubslave=`ciop-browseresults -r ${wkid} -j node_swath | grep ${inputdata[4]} | head -1`
     
     if [ -z "${pubslave}" ]; then
 	ciop-log "ERROR" "Failed to locate slave safe"

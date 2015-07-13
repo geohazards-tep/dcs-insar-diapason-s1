@@ -112,8 +112,9 @@ function merge_dems()
     
     local outdir=$1
     local demlist=""
+    local wkid=${_WF_ID}
     #look for the dems to merge in geotiff
-    for dem in `ciop-browseresults -j node_burst | grep -i dem | grep -i tif`; do
+    for dem in `ciop-browseresults -r ${wkid}  -j node_burst | grep -i dem | grep -i tif`; do
 	hadoop dfs -copyToLocal "$dem" "${outdir}"
 	flist="${flist} ${outdir}/`basename $dem`"
     done
@@ -127,11 +128,11 @@ function merge_dems()
 
     local outdem=${outdir}/dem_merged.tif
 
-    mergecmd="gdalwarp -ot Int16 -r bilinear ${flist} ${outdem}"
+    local mergecmd="gdalwarp -ot Int16 -r bilinear ${flist} ${outdem}"
     
     eval "${mergecmd}"
     
-    status=$?
+    local status=$?
     
     return $status
 }
@@ -164,8 +165,11 @@ function interf_swath()
     
     masterburst=-1
     
+    #use the workflow id
+    local wkid=${_WF_ID}
+
     # stage in results from previous node
-    for r in `ciop-browseresults -j node_coreg | grep "SW${swath}_BURST_[0-9]*" | sort -n`; do
+    for r in `ciop-browseresults -r ${wkid}  -j node_coreg | grep "SW${swath}_BURST_[0-9]*" | sort -n`; do
 	hadoop dfs -copyToLocal "$r" "${procdir}"
 
 	status=$?
@@ -354,7 +358,7 @@ ciop-log "INFO" "Master orbit is ${master}"
 ciop-log "INFO" "Slave orbit is ${slave}"
 
 
-swath_list=$(get_available_swath_list )
+swath_list=$(get_available_swath_list ${_WF_ID} )
 
 if [ -z "${swath_list}" ]; then
     ciop-log "INFO" "No swath number list detected"

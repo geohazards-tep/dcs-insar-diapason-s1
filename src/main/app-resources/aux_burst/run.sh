@@ -39,7 +39,7 @@ function main()
 	return $ERRMISSING
     fi
     
-    inputdata=("${!1}")
+    local inputdata=("${!1}")
 
     if [ ${#inputdata[@]}  -lt 5  ];then
 	return $ERRINVALID
@@ -50,8 +50,14 @@ function main()
 
     ciop-log "INFO" "created processing directory ${serverdir}"
 
+    #get the workflow id
+    local wkid=${_WF_ID}
+    
+    ciop-log "INFO" "wkid is ${wkid}"
+
+
     #master & slave are assumed to be safe directory names published by node_swath
-    pubmaster=`ciop-browseresults -j node_swath | grep ${inputdata[0]} | head -1`
+    local pubmaster=`ciop-browseresults -r ${wkid} -j node_swath | grep ${inputdata[0]} | head -1`
     
     if [ -z "${pubmaster}" ]; then
 	ciop-log "ERROR" "Failed to locate master safe"
@@ -59,21 +65,21 @@ function main()
     fi
 
     hadoop dfs -copyToLocal "${pubmaster}" "${serverdir}/CD" 
-    statmaster=$?
+    local statmaster=$?
     if [ "$statmaster" != "0" ]; then
 	ciop-log "ERROR" "Failed to stage in ${inputdata[0]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
-    master="${serverdir}/CD/${inputdata[0]}"
+    local master="${serverdir}/CD/${inputdata[0]}"
     
     ciop-log "INFO" "local master is $master"
  
-    swathmaster=${inputdata[1]}
+    local swathmaster=${inputdata[1]}
     
     
     #now get the slave safe 
-    pubslave=`ciop-browseresults -j node_swath | grep ${inputdata[2]} | head -1`
+    local pubslave=`ciop-browseresults -r ${wkid}  -j node_swath | grep ${inputdata[2]} | head -1`
     
     if [ -z "${pubslave}" ]; then
 	ciop-log "ERROR" "Failed to locate slave safe"
@@ -82,25 +88,25 @@ function main()
     
     hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
 
-    statslave=$?
+    local statslave=$?
     if [ "$statslave" != "0" ]; then
 	ciop-log "ERRROR" "Failed to stage in ${inputdata[2]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
     
-    slave="${serverdir}/CD/${inputdata[2]}"
+    local slave="${serverdir}/CD/${inputdata[2]}"
     
-    swathslave=${inputdata[3]}
+    local swathslave=${inputdata[3]}
 
     #polarization
-    pol=${inputdata[4]}
+    local pol=${inputdata[4]}
     export POL="${pol}"
     #extract data 
     extract_any.pl  --pol=${pol} --in="${master}" --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
     
     #get master orbit number
-    orbitmaster=`grep -ih "ORBIT NUMBER" "${serverdir}/DAT/GEOSAR/"*.geosar | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
+    local orbitmaster=`grep -ih "ORBIT NUMBER" "${serverdir}/DAT/GEOSAR/"*.geosar | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
     
     if [ -z "${orbitmaster}" ]; then
         ciop-log "ERROR" "Master image extraction failure"
@@ -126,7 +132,7 @@ function main()
     export POL=${pol}
     extract_any.pl --in="${slave}" --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" --pol="${pol}"  > ${serverdir}/log/extract_slave.log 2<&1
    
-    norbits=`ls ${serverdir}/ORB/*.orb | wc -l`
+    local norbits=`ls ${serverdir}/ORB/*.orb | wc -l`
     
     if [ $norbits -lt 2 ]; then
 	ciop-log "ERROR" "Slave image extraction failure"
@@ -156,7 +162,7 @@ function main()
 	return ${ERRGENERIC}
     }
 
-    tifdem="${serverdir}/DAT/dem.tif"
+    local tifdem="${serverdir}/DAT/dem.tif"
     
     if [ ! -e "${tifdem}" ]; then
 	#no DEM exit
