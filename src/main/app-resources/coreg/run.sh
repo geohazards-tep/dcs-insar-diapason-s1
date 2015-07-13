@@ -1,4 +1,4 @@
-¼#!/bin/bash
+#!/bin/bash
 
 #source the ciop functions
 source ${ciop_job_include}
