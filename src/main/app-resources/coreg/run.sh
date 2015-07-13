@@ -155,7 +155,8 @@ function main()
     slave="${serverdir}/CD/${inputdata[4]}"  
     
 
-    #extract data 
+    #extract data
+    export POL="${pol}"
     extract_any.pl  --pol=${pol}  --in="${master}"  --burst=${burstmaster}  --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
     
     
