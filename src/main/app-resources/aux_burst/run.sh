@@ -50,31 +50,54 @@ function main()
 
     ciop-log "INFO" "created processing directory ${serverdir}"
 
-    #master & slave are assumed to be local files
-    master=$( get_data ${inputdata[0]} ${serverdir}/CD ) 
+    #master & slave are assumed to be safe directory names published by node_swath
+    pubmaster=`ciop-browseresults -j node_swath | grep ${inputdata[0]} | head -1`
+    
+    if [ -z "${pubmaster}" ]; then
+	ciop-log "ERROR" "Failed to locate master safe"
+	return $ERRMISSING
+    fi
+
+    hadoop dfs -copyToLocal "${pubmaster}" "${serverdir}/CD" 
     statmaster=$?
     if [ "$statmaster" != "0" ]; then
-	ciop-log "ERROR" "Failed to download input ${inputdata[0]}"
+	ciop-log "ERROR" "Failed to stage in ${inputdata[0]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
-
+    master="${serverdir}/CD/${inputdata[0]}"
+    
+    ciop-log "INFO" "local master is $master"
+ 
     swathmaster=${inputdata[1]}
-    slave=$( get_data ${inputdata[2]}  ${serverdir}/CD ) 
+    
+    
+    #now get the slave safe 
+    pubslave=`ciop-browseresults -j node_swath | grep ${inputdata[2]} | head -1`
+    
+    if [ -z "${pubslave}" ]; then
+	ciop-log "ERROR" "Failed to locate slave safe"
+	return $ERRMISSING
+    fi
+    
+    hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
+
     statslave=$?
     if [ "$statslave" != "0" ]; then
-	ciop-log "ERRROR" "Failed to download input ${inputdata[2]}"
+	ciop-log "ERRROR" "Failed to stage in ${inputdata[2]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
-
+    
+    slave="${serverdir}/CD/${inputdata[2]}"
+    
     swathslave=${inputdata[3]}
 
     #polarization
     pol=${inputdata[4]}
     export POL="${pol}"
     #extract data 
-    handle_tars.pl  --pol=${pol} --in="${master}" --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
+    extract_any.pl  --pol=${pol} --in="${master}" --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
     
     #get master orbit number
     orbitmaster=`grep -ih "ORBIT NUMBER" "${serverdir}/DAT/GEOSAR/"*.geosar | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
@@ -101,7 +124,7 @@ function main()
 
     #extract the slave image
     export POL=${pol}
-    handle_tars.pl --in="${slave}" --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" --pol="${pol}"  > ${serverdir}/log/extract_slave.log 2<&1
+    extract_any.pl --in="${slave}" --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" --pol="${pol}"  > ${serverdir}/log/extract_slave.log 2<&1
    
     norbits=`ls ${serverdir}/ORB/*.orb | wc -l`
     

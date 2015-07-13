@@ -115,28 +115,48 @@ function main()
 	return ${ERRGENERIC}
     fi
 
-    #master & slave are assumed to be local files
-    master=$( get_data ${inputdata[0]} ${serverdir}/CD ) 
-    statmaster=$?
+    #master & slave are assumed to be safe directory names published by node_swath
+    pubmaster=`ciop-browseresults -j node_swath | grep ${inputdata[0]} | head -1`
+    
+    if [ -z "${pubmaster}" ]; then
+	ciop-log "ERROR" "Failed to locate master safe"
+	return $ERRMISSING
+    fi
+
+    hadoop dfs -copyToLocal "${pubmaster}" "${serverdir}/CD" 
+    
+     statmaster=$?
     if [ "$statmaster" != "0" ]; then
-	ciop-log "ERROR" "Failed to download input ${inputdata[0]}"
+	ciop-log "ERROR" "Failed to stage in ${inputdata[0]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
     
-    
+    master="${serverdir}/CD/${inputdata[0]}"
 
-    slave=$( get_data ${inputdata[4]}  ${serverdir}/CD ) 
+    ciop-log "INFO" "local master is $master"
+ 
+       #now get the slave safe 
+    pubslave=`ciop-browseresults -j node_swath | grep ${inputdata[2]} | head -1`
+    
+    if [ -z "${pubslave}" ]; then
+	ciop-log "ERROR" "Failed to locate slave safe"
+	return $ERRMISSING
+    fi
+    
+    hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
     statslave=$?
     if [ "$statslave" != "0" ]; then
-	ciop-log "ERRROR" "Failed to download input ${inputdata[3]}"
+	ciop-log "ERRROR" "Failed to stage in ${inputdata[4]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
    
+    slave="${serverdir}/CD/${inputdata[4]}"  
     
+
     #extract data 
-    handle_tars.pl  --pol=${pol}  --in="${master}"  --burst=${burstmaster}  --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
+    extract_any.pl  --pol=${pol}  --in="${master}"  --burst=${burstmaster}  --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
     
     
     #get polarization
@@ -153,7 +173,7 @@ function main()
 
     #extract the slave image
     export POL=${pol}
-    handle_tars.pl --in="${slave}" --burst=${burstslave} --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" --pol="${pol}"  > ${serverdir}/log/extract_slave.log 2<&1
+    extract_any.pl --in="${slave}" --burst=${burstslave} --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" --pol="${pol}"  > ${serverdir}/log/extract_slave.log 2<&1
    
     norbits=`ls ${serverdir}/ORB/*.orb | wc -l`
     
@@ -200,6 +220,7 @@ EOF
     fi
 
     #cleanup before publishing
+    rm -rf ${serverdir}/CD/*.SAFE 2>/dev/null
     rm -f ${serverdir}/SLC_CI2/${orbitslave}_SLC* 2>/dev/null
     rm -f ${serverdir}/CD/* 2>/dev/null
     rm -f ${serverdir}/CD/* 2>/dev/null

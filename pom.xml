@@ -5,7 +5,7 @@
 
 	<groupId>com.terradue.ciop.app</groupId>
 	<!-- change me -->
-	<artifactId>dcs-insar-diapason</artifactId>
+	<artifactId>dcs-insar-diapason-s1</artifactId>
 	<packaging>rpm</packaging>
 	<description>Developer Cloud Sandbox for Sentinel-1 InSAR processor with DIAPASON</description>
 	<version>1.0</version>
@@ -13,7 +13,7 @@
 	<scm>
 		<connection>scm:git:git@github.com:pordoqui/dcs-insar-diapason-s1.git</connection>
 		<developerConnection>scm:git:git@github.com:pordoqui/dcs-insar-diapason-s1.git</developerConnection>
-		<url>https://github.com/pordoqui/dcs-insar-diapason</url>
+		<url>https://github.com/pordoqui/dcs-insar-diapason-s1</url>
 		<tag>HEAD</tag>
 	</scm>
 

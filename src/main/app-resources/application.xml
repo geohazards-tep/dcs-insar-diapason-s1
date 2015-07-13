@@ -26,28 +26,25 @@
     <node id="node_swath">
       <job id="aux_swath"/>
       <sources>
-        <source refid="file:urls">/home/pordoqui/S1/inputs/fogo</source>
+	<source scope="runtime" id="pairs" title="Sentinel-1 master/slave pairs" abstract="Sentinel-1 master;slave pairs local paths separated by comma" refid="string:list">/tmp/S1A_IW_SLC__1SDV_20150120T014642_20150120T014655_004248_0052B6_C334.zip;/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip</source>
       </sources>
     </node>
     <node id="node_burst">
       <job id="aux_burst"/>
       <sources>
         <source refid="wf:node">node_swath</source>
-	<!--<source refid="file:urls">/home/pordoqui/S1/inputs/piton_sw2</source>-->
       </sources>
     </node>
     <node id="node_coreg">
       <job id="coreg_burst" />
       <sources>
 	<source refid="wf:node">node_burst</source>
-	<!--<source refid="file:urls">/home/pordoqui/S1/inputs/piton_burst</source>-->
       </sources>
     </node>
         <node id="node_interf">
       <job id="interf" />
       <sources>
 	<source refid="wf:node">node_coreg</source>
-	<!--<source refid="file:urls">/home/pordoqui/S1/inputs/interf</source>-->
       </sources>
     </node>
   </workflow>
