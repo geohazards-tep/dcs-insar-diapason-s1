@@ -1,4 +1,4 @@
-#!/bin/bash
+¼#!/bin/bash
 
 #source the ciop functions
 source ${ciop_job_include}
@@ -137,7 +137,7 @@ function main()
     ciop-log "INFO" "local master is $master"
  
        #now get the slave safe 
-    pubslave=`ciop-browseresults -j node_swath | grep ${inputdata[2]} | head -1`
+    pubslave=`ciop-browseresults -j node_swath | grep ${inputdata[4]} | head -1`
     
     if [ -z "${pubslave}" ]; then
 	ciop-log "ERROR" "Failed to locate slave safe"
@@ -147,7 +147,7 @@ function main()
     hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
     statslave=$?
     if [ "$statslave" != "0" ]; then
-	ciop-log "ERRROR" "Failed to stage in ${inputdata[4]}"
+	ciop-log "ERROR" "Failed to stage in ${inputdata[4]}"
 	procCleanup
 	return ${ERRSTGIN}
     fi
