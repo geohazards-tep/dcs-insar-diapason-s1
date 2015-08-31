@@ -21,7 +21,7 @@
       </defaultJobconf>
     </jobTemplate> 
   </jobTemplates>
-    <workflow id="dcs-diapason-s1" title="Sentinel-1 InSAR processing" abstract="Sentinel-1 Interferogram generation with DIAPASON" >
+    <workflow id="dcs-diapason-s1" title="Diapason Sentinel-1 InSAR processor" abstract="Sentinel-1 Interferogram generation with DIAPASON" >
     <workflowVersion>1.0</workflowVersion>
     <node id="node_swath">
       <job id="aux_swath"/>
