@@ -25,20 +25,19 @@ mvn install
 
 ### Processing overview
 
-This service creates the interferometric phase,coherence and reflectivity from a Sentinel-1 InSAR pair .
+This service creates the interferometric phase,coherence and reflectivity from a Sentinel-1 InSAR pair (IW SLC data)
 
 
 #### Input description
 
-This template application uses as input pairs (Master;Slave) of Sentinel 1 products. 
+This template application uses as input a pair (Master;Slave) of Sentinel 1 products. 
 
-If you run this template application using local file URLs stored on a shared folder like /tmp, pass each input pair e.g.:
+If you run this template application using local file URLs stored on a shared folder like /tmp, pass an input pair e.g.:
 
 
 ```
-/tmp/S1A_IW_GRDH_1SDV_20150305T051939_20150305T052004_004892_006196_B6ED.zip;/tmp/S1A_IW_RAW__0SDV_20150303T053527_20150303T053559_004863_0060F7_124C.zip
-```
-as a set of comma ( , ) separated pairs.
+/tmp/S1A_IW_SLC__1SDV_20150120T014642_20150120T014655_004248_0052B6_C334.zip;/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip
+``
 
 
 To discover and download master/slave Sentinel-1 products, use either the [ESA Sentinel-1 Scientific Data Hub](https://scihub.esa.int/dhus/) or the [Geohazards Thematic Exploitation platform](https://geohazards-tep.eo.esa.int).
@@ -46,7 +45,7 @@ To discover and download master/slave Sentinel-1 products, use either the [ESA S
 You can also run this template application using catalogue URLs for input references, as provided by the [Geohazards Thematic Exploitation platform](https://geohazards-tep.eo.esa.int) e.g:
 
 ```
-https://data.terradue.com/gs/catalogue/tepqw/gtfeature/search?uid=S1A_IW_GRDH_1SDV_20150305T051939_20150305T052004_004892_006196_B6ED;https://data.terradue.com/gs/catalogue/tepqw/gtfeature/search?uid=S1A_IW_RAW__0SDV_20150303T053527_20150303T053559_004863_0060F7_124C
+https://data.terradue.com/gs/catalogue/tepqw/gtfeature/search?uid=/tmp/S1A_IW_SLC__1SDV_20150120T014642_20150120T014655_004248_0052B6_C334;https://data.terradue.com/gs/catalogue/tepqw/gtfeature/search?uid=/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55
 ```
 and then let the application download them from the Data Hub. 
 
