@@ -71,10 +71,10 @@ function get_POEORB() {
 }
 
 function main(){
-  masterref=$( echo "${1}" | cut -d";" -f1 )
+  masterref=$( echo "${1}" | sed 's:[;@]: :g' | awk '{print $1}' )
   [ -z "${masterref}" ] && return ${ERR_MASTER}
 
-  slaveref=$( echo "${1}" | cut -d";" -f2 )
+  slaveref=$( echo "${1}" |  sed 's:[;@]: :g' | awk '{print $2}' )
   [ -z "${slaveref}" ] && return ${ERR_SLAVE}
   
   ciop-log "INFO" "Getting Master"
@@ -87,7 +87,7 @@ function main(){
   
 
   ciop-log "INFO" "Getting Slave"
-  ciop-log "INFO" "Master ref : ${slaveref}"
+  ciop-log "INFO" "Slave ref : ${slaveref}"
   slave=$( get_data ${slaveref} ${TMPDIR}/download/slave )
   res=$?
   [ "${res}" != "0" ] && return ${res}
