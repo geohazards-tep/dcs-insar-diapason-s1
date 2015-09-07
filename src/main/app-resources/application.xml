@@ -6,18 +6,27 @@
       <defaultParameters>
 	<parameter id="pol">VV</parameter>
       </defaultParameters>
+      <defaultJobconf>       
+	<property id="mapred.task.timeout">720000000</property>                      
+      </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="aux_burst">
       <streamingExecutable>/application/aux_burst/run.sh</streamingExecutable>
+    <defaultJobconf>       
+	<property id="mapred.task.timeout">720000000</property>                      
+      </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="coreg_burst">
       <streamingExecutable>/application/coreg/run.sh</streamingExecutable>
+      <defaultJobconf>       
+	<property id="mapred.task.timeout">720000000</property>                      
+      </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="interf">
       <streamingExecutable>/application/interf/run.sh</streamingExecutable>
       <defaultJobconf>       
 	<property id="ciop.job.max.tasks">1</property>
-        <property id="mapred.task.timeout">7200000</property>                      
+        <property id="mapred.task.timeout">720000000</property>                      
       </defaultJobconf>
     </jobTemplate> 
   </jobTemplates>
