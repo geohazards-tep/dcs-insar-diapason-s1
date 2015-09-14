@@ -158,8 +158,12 @@ trap trapFunction SIGHUP SIGINT SIGTERM
 
 
 # loop through the pairs
-while read pair
+while read master
 do
+    ciop-log "INFO" "source : $master"
+    slave=`ciop-getparam slave`
+    ciop-log "INFO" "param : $slave"
+    pair="${master};${slave}"
     export serverdir=${TMPDIR}/$( uuidgen )
     mkdir -p ${TMPDIR}/download/master
     mkdir -p ${TMPDIR}/download/slave
