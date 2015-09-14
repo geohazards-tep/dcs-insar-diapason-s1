@@ -304,7 +304,30 @@ ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml${mlaz
 #publish results
 ciop-publish -m "${mergedir}/DIF_INT/*.tiff" 
 ciop-publish "${mergedir}/*.log" -r -a
-finr ${procdir} -iname "*.log" -exec ciop-publish "${mergedir}/*.log" -r -a '{}' \;
+find ${procdir} -iname "*.log" -exec ciop-publish "${mergedir}/*.log" -r -a '{}' \;
+
+#convert all the tif files to png so that the results can be seen on the GeoBrowser
+
+#first do the coherence and amplitude ,for which 0 is a no-data value
+for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print`; do
+    target=${tif%.*}.png
+    gdal_translate -scale -oT Byte -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
+    #convert the world file to pngw extension
+    wld=${target%.*}.wld
+    pngw=${target%.*}.pngw
+    [ -e "${wld}" ] && mv "${wld}"  "${pngw}"
+done
+
+#convert the phase with imageMagick , which can deal with the alpha channel
+if [ -n "`type -p convert`" ]; then
+    phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | head -1`
+    [ -n "$phase" ] && convert -alpha activate "${phase}" "${phase%.*}.png"
+fi
+
+#publish png and their pngw files
+ciop-publish -m "${mergedir}"/DIF_INT/*.png
+ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
+
 
 return 0
 
