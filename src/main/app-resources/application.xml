@@ -5,13 +5,23 @@
       <streamingExecutable>/application/aux_swath/run.sh</streamingExecutable>
       <defaultParameters>
 	<parameter id="pol">VV</parameter>
+	<parameter id="slave" title="Sentinel-1 IW Slave" abstract="Define the InSAR Slave product. The product is passed by reference to catalogue entries"/>
       </defaultParameters>
+      <defaultJobconf>       
+	<property id="mapred.task.timeout">720000000</property>                      
+      </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="aux_burst">
       <streamingExecutable>/application/aux_burst/run.sh</streamingExecutable>
+      <defaultJobconf>       
+	<property id="mapred.task.timeout">720000000</property>                      
+      </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="coreg_burst">
       <streamingExecutable>/application/coreg/run.sh</streamingExecutable>
+      <defaultJobconf>       
+	<property id="mapred.task.timeout">720000000</property>                      
+      </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="interf">
       <streamingExecutable>/application/interf/run.sh</streamingExecutable>
@@ -26,8 +36,11 @@
     <node id="node_swath">
       <job id="aux_swath"/>
       <sources>
-	<source scope="runtime" id="pairs" title="Sentinel-1 master/slave pairs" abstract="Sentinel-1 master;slave pairs local paths separated by comma" refid="string:list">/tmp/S1A_IW_SLC__1SDV_20150120T014642_20150120T014655_004248_0052B6_C334.zip;/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip</source>
+	<source scope="runtime" id="master" title="Sentinel-1 IW master" abstract="Define the InSAR Master product" refid="string:list">/tmp/S1A_IW_SLC__1SDV_20150120T014642_20150120T014655_004248_0052B6_C334.zip;/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip</source>
       </sources>
+      <parameters>
+      <parameter id="slave" scope="runtime">/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip</parameter>
+      </parameters>
     </node>
     <node id="node_burst">
       <job id="aux_burst"/>
