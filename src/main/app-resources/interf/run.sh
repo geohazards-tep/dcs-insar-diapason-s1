@@ -235,9 +235,9 @@ function interf_swath()
     
 
 #debursting
-    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar --geosarout=${deburstdir}/DAT/GEOSAR/${master}.geosar --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${masterlist} > ${deburstdir}/log/deburst_${master}.log 2<&1
+    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar --geosarout=${deburstdir}/DAT/GEOSAR/${master}.geosar --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${masterlist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${master}.log 2<&1
 
-    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar  --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${slavelist} > ${deburstdir}/log/deburst_${slave}.log 2<&1
+    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar  --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${slavelist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${slave}.log 2<&1
 
 #swath level interf
     slavegeo=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${slave}.geosar
