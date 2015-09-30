@@ -217,7 +217,7 @@ f=${serverdir}/SLC_CI2/${orbitslave}_SLC_DERAMP.cr4
 0
 EOF
 
-    tops_shift_and_reramp.pl --exedir="${EXE_DIR}" --ci2slave="${serverdir}/SLC_CI2/${orbitslave}_SLC_DERAMP.rad" --outdir="${serverdir}/GEO_CI2" --master="${serverdir}/DAT/GEOSAR/${orbitmaster}.geosar" --slave="${serverdir}/DAT/GEOSAR/${orbitslave}.geosar" --gridfile="${serverdir}/GRID/GRID_${orbitmaster}_${orbitslave}.dat" >> "${serverdir}/log/changeo_reramp_${orbitslave}.log" 2<&1
+    tops_shift_and_reramp.pl --exedir="${EXE_DIR}" --ci2slave="${serverdir}/SLC_CI2/${orbitslave}_SLC_DERAMP.rad" --outdir="${serverdir}/GEO_CI2" --master="${serverdir}/DAT/GEOSAR/${orbitmaster}.geosar" --slave="${serverdir}/DAT/GEOSAR/${orbitslave}.geosar" --gridfile="${serverdir}/GRID/GRID_${orbitmaster}_${orbitslave}.dat" --tmpdir="${serverdir}/TEMP"  >> "${serverdir}/log/changeo_reramp_${orbitslave}.log" 2<&1
     
     local shiftst=$?
     local geo="${serverdir}/GEO_CI2/geo_${orbitslave}_${orbitmaster}.cr4"
