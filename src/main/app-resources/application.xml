@@ -31,15 +31,15 @@
       </defaultJobconf>
     </jobTemplate> 
   </jobTemplates>
-    <workflow id="dcs-diapason-s1" title="Diapason Sentinel-1 InSAR processor" abstract="Sentinel-1 Interferogram generation with DIAPASON" >
+    <workflow id="dcs-diapason-s1" title="Diapason InSAR Sentinel-1 TOPSAR(IW,EW)" abstract="Master and Slave images of Sentinel-1 SLC" >
     <workflowVersion>1.0</workflowVersion>
     <node id="node_swath">
       <job id="aux_swath"/>
       <sources>
-	<source scope="runtime" id="master" title="Sentinel-1 IW master" abstract="Define the InSAR Master product" refid="string:list">/tmp/S1A_IW_SLC__1SDV_20150120T014642_20150120T014655_004248_0052B6_C334.zip;/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip</source>
+	<source scope="runtime" id="master" title="Sentinel-1 IW master" abstract="Define the InSAR Master product" refid="string:list"></source>
       </sources>
       <parameters>
-      <parameter id="slave" scope="runtime">/tmp/S1A_IW_SLC__1SDV_20150309T014641_20150309T014655_004948_0062FF_DB55.zip</parameter>
+      <parameter id="slave" scope="runtime"></parameter>
       </parameters>
     </node>
     <node id="node_burst">
