@@ -31,7 +31,7 @@
       </defaultJobconf>
     </jobTemplate> 
   </jobTemplates>
-    <workflow id="dcs-diapason-s1" title="Diapason InSAR Sentinel-1 TOPSAR(IW,EW)" abstract="DIAPASON is an InSAR tool suite developed by the French Space Agency (CNES) and maintained by ALTAMIRA INFORMATION.This service performs an InSAR workflow on Sentinel-1 TOPSAR (IW,EW) data, producing interferograms, amplitude and coherence maps.To run this service , specify master and slave Sentinel-1 SLC images." >
+    <workflow id="dcs-diapason-s1" title="DIAPASON InSAR Sentinel-1 TOPSAR(IW,EW)" abstract="DIAPASON is an InSAR tool suite developed by the French Space Agency (CNES) and maintained by ALTAMIRA INFORMATION.This service performs an InSAR workflow on Sentinel-1 TOPSAR (IW,EW) data, producing interferograms, amplitude and coherence maps.To run this service , specify master and slave Sentinel-1 SLC images." >
     <workflowVersion>1.0</workflowVersion>
     <node id="node_swath">
       <job id="aux_swath"/>
