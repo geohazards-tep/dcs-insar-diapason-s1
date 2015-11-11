@@ -82,7 +82,10 @@ function main(){
   
   master=$( get_data ${masterref} ${TMPDIR}/download/master )
   res=$?
-  [ "${res}" != "0" ] && return ${res}
+  [ "${res}" != "0" ] && {
+      ciop-log "ERROR" "Failed to download ${masterref}"
+      return ${res}
+      }
   ciop-log "INFO" "local master is ${master}"
   
 
@@ -90,7 +93,10 @@ function main(){
   ciop-log "INFO" "Slave ref : ${slaveref}"
   slave=$( get_data ${slaveref} ${TMPDIR}/download/slave )
   res=$?
-  [ "${res}" != "0" ] && return ${res}
+  [ "${res}" != "0" ] && { 
+      ciop-log "ERROR" "Failed to download ${slaveref}"
+      return ${res}
+}
   ciop-log "INFO" "local slave is ${slave}"
 
   #master input check
