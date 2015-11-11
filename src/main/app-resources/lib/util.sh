@@ -148,8 +148,37 @@ function matching_bursts
     local first=""
     local last=""
     local list=()
+    
+      #master bursts to test
+    local starting=0
+    local ending=50
+    
+    #in case use set an aoi
+    local aoi=""
+    if [ $# -ge 6 ]; then
+	aoi="$6"
+	echo "aoi def : $aoi"
+	if [ "`type -t s1_bursts_aoi`"  = "function" ]; then
+	    #echo "running s1_swaths_aoi"
+	    s1_bursts_aoi "${geosarm}" "${aoi}" bursts
+	    status=$?
+	    #echo "s1_burst_aoi status $status"
+	    if [ $status -eq 0 ]; then
+		local burstlist=(`echo "$bursts"`)
+		if [ ${#burstlist[@]} -eq 2 ]; then
+		    starting=${burstlist[0]}
+		    ending=${burstlist[1]}
+		fi
+	    else 	
+		#subswath does not intersect with the specified aoi
+		return 3
+	    fi
+	    
+	fi
+	
+    fi
 
-    for x in `seq 0 50`; do
+    for x in `seq "${starting}" "${ending}"`; do
 	bursts=`${EXE_DIR}/matching_burst "${geosarm}" "${geosars}" "${x}" 2>/dev/null | grep -i slave | sed 's@\([^=]*\)\(=\)\(.*\)@\3@g' `
 	status=$?
 
@@ -282,4 +311,38 @@ function get_DEM()
     
 return ${SUCCESS}
 
+}
+
+
+#inputs :
+# geosar file  , aoi (shapefile,or aoi string),
+#output : variable for storing burst lists
+function s1_bursts_aoi()
+{
+	if [ $# -lt 3 ]; then
+		return 1
+	fi
+	
+	local geosar=$1
+	local aoi=$2
+	
+	if [ -z "${EXE_DIR}" ]; then
+		return 1
+	fi	
+	
+	if [ ! -e "${EXE_DIR}/swath_aoi_intersect" ]; then
+		echo "missing binary ${EXE_DIR}/swath_aoi_intersect"
+		return 1
+	fi
+	
+	local bursts_=$(${EXE_DIR}/swath_aoi_intersect "${geosar}" "$aoi" | grep BURST | sed 's@[^0-9]@@g')
+	
+	if [ -z "${bursts_}" ]; then
+		return 1
+	fi
+	
+	#record output burst list
+	eval  "$3=\"${bursts_}\""
+	
+	return 0
 }
