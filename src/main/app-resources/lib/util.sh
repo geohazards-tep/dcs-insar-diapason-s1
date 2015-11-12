@@ -157,7 +157,7 @@ function matching_bursts
     local aoi=""
     if [ $# -ge 6 ]; then
 	aoi="$6"
-	echo "aoi def : $aoi"
+   
 	if [ "`type -t s1_bursts_aoi`"  = "function" ]; then
 	    #echo "running s1_swaths_aoi"
 	    s1_bursts_aoi "${geosarm}" "${aoi}" bursts
