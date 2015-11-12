@@ -138,9 +138,9 @@ function merge_dems()
 }
 
 
-#produce swath level interferogram
+#produce swath level debursted coregistered slc
 #inputs are master_orbit slave_orbit swath_number processing_directory input_dem
-function interf_swath()
+function deburst_swath()
 {
 
     if [ $# -lt 4 ]; then
@@ -263,6 +263,7 @@ function merge_swaths()
     local mlaz=$5
     local mlran=$6
     local swathlist=$7
+    local nsw=`echo $swathlist | wc -w`
 
     mergedir=${procdir}/MERGE
 
@@ -271,16 +272,24 @@ function merge_swaths()
 	return ${ERRPERM}
     }
     
-    master_input=$(get_master_deburst_input "${master}" "${swathlist}" "${procdir}") 
+    if [ $nsw -gt 1 ]; then
+	master_input=$(get_master_deburst_input "${master}" "${swathlist}" "${procdir}") 
+	
+        #merge master
+	echo -e  "${master_input}" | ${EXE_DIR}/swath_merge  > "${mergedir}"/merge_${master}.log 2<&1
+	
+	slave_input=$(get_slave_deburst_input "${master}" "${slave}" "${swathlist}" "${procdir}")
+	
+        #merge slave
+	echo -e "${slave_input}" | ${EXE_DIR}/swath_merge  > "${mergedir}"/merge_${slave}.log 2<&1
+    else
+	#case where there is only 1 subswath , no need to merge 
+	local sw_=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
+	diapconv.pl --mode=copy --type=ci2 --infile="${procdir}/SW${sw_}_DEBURST/SLC_CI2/${master}_SLC.ci2" --outfile="${mergedir}/${master}_SLC.ci2" --exedir="${EXE_DIR}" > "${mergedir}"/merge_${master}.log 2<&1
+	cp "${procdir}/SW${sw_}_DEBURST/DAT/GEOSAR/${master}.geosar" "${mergedir}" >> "${mergedir}"/merge_${master}.log 2<&1
+	diapconv.pl --mode=copy --type=ci2 --infile="${procdir}/SW${sw_}_DEBURST/SLC_CI2/geo_${slave}_${master}_RERAMP.cr4" --outfile="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" > "${mergedir}"/merge_${slave}.log 2<&1
+    fi
     
-    #merge master
-    echo -e  "${master_input}" | ${EXE_DIR}/swath_merge  > "${mergedir}"/merge_${master}.log 2<&1
-
-slave_input=$(get_slave_deburst_input "${master}" "${slave}" "${swathlist}" "${procdir}")
-
-#merge slave
-echo -e "${slave_input}" | ${EXE_DIR}/swath_merge  > "${mergedir}"/merge_${slave}.log 2<&1
-
 mkdir -p ${mergedir}/DIF_INT
 
 #fix geosar
@@ -289,7 +298,9 @@ perl -pi -e 's@\(AZIMUTH DOPPLER VALUE\)\([[:space:]]*\)\([^\n]*\)@\1\20.0@g' "$
 sw=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
 
 #create interferogram
-interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --mlaz=${mlaz} --mlran=${mlran} --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf.log 2<&1
+local psfiltopt=""
+[ -n "${psfiltx}" ] && psfiltopt="--psfiltx=${psfiltx}"
+interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --mlaz=${mlaz} --mlran=${mlran} --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf.log 2<&1
 
 #create geotiff results
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho.log 2<&1
@@ -299,6 +310,18 @@ ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho.log 2<&1
 
 
+#crop output geotiffs if aoi is set
+declare -a aoi
+[ -n "$inputaoi" ] && aoi=(`echo "${inputaoi}" | sed 's@,@ @g'`)
+
+[ ${#aoi[@]} -ge 4 ]   && {
+
+    for geotiff in `find "${mergedir}/DIF_INT" -iname "*.tiff" -print -o -iname "*.tif" -print`;do
+	target=${mergedir}/temp.tiff
+	gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${geotiff}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
+	mv "${target}" "${geotiff}"
+    done
+}
 
 
 #publish results
@@ -344,6 +367,10 @@ trap trapFunction SIGHUP SIGINT SIGTERM
 
 count=0
 
+#get parameters
+#export inputaoi=(`ciop-getparam aoi`)
+export nodecleanup=(`ciop-getparam cleanup`)
+export psfiltx=(`ciop-getparam psfiltx`)
 
 while read data
 do
@@ -402,7 +429,7 @@ localdem=${serverdir}/dem_merged.tif
 
 for swath in ${swath_list} ; do
 
-interf_swath "${master}" "${slave}" ${swath} "${serverdir}" "${localdem}"
+deburst_swath "${master}" "${slave}" ${swath} "${serverdir}" "${localdem}"
 status=$?
 ciop-log "INFO" "swath interf $status"
 
@@ -413,6 +440,17 @@ ciop-log "INFO" "Merging sub-swaths"
 merge_swaths ${master} ${slave} "${serverdir}" "${serverdir}/dem.dat" 2 8 "${swath_list}"
 
 let "count += 1"
+
+[ "${nodecleanup}" == "true" ]  && {
+    #delete intermediary results 
+    nodelist="node_swath node_burst node_coreg node_interf"
+    local wkid_=${_WF_ID}
+    for node in $nodelist ; do
+	for d in `ciop-browseresults -r "${wkid_}" -j ${node}`; do
+	    hadoop dfs -rmr $d > /dev/null 2<&1
+	done
+    done
+}
 
 procCleanup
 
