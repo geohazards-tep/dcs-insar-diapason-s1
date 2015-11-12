@@ -30,7 +30,8 @@ function trapFunction()
     exit
 }
 
-
+#get parameters
+export inputaoi=(`ciop-getparam aoi`)
 
 #main
 function main()
@@ -188,10 +189,23 @@ function main()
     local BURSTSTART=""
     local BURSTEND=""
     local SLAVEBURSTLIST=""
+    
+    local aoidef=""
+    ciop-log "INFO" "input aoi ${inputaoi}"
+    [ -n "${inputaoi}"  ] && {
+	aoidef=`echo "${inputaoi}" | sed 's@,@ @g' | awk '{print "lon="$1",lat="$2",lon="$3",lat="$4}'`
+	ciop-log "INFO" "aoidef:${aoidef}"
+}
 
-    matching_bursts  "${serverdir}/DAT/GEOSAR/${orbitmaster}.geosar" "${serverdir}/DAT/GEOSAR/${orbitslave}.geosar" BURSTSTART BURSTEND SLAVEBURSTLIST
+    matching_bursts  "${serverdir}/DAT/GEOSAR/${orbitmaster}.geosar" "${serverdir}/DAT/GEOSAR/${orbitslave}.geosar" BURSTSTART BURSTEND SLAVEBURSTLIST "${aoidef}"
     status=$?
     
+    [ $status -eq 3 ] && [ -n "${aoidef}" ] && {
+	ciop-log "INFO" "aoi ${inputaoi} does not intersect with subswath ${swathmaster}"
+	procCleanup
+	return $SUCCESS
+    }
+
     if [ $status -ne 0 ]; then
 	ciop-log "ERROR" " Failed to determine master-slave matching bursts for subswath ${swathmaster}-> $status"
         procCleanup
