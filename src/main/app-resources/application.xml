@@ -4,7 +4,7 @@
     <jobTemplate id="aux_swath">
       <streamingExecutable>/application/aux_swath/run.sh</streamingExecutable>
       <defaultParameters>
-	<parameter id="pol">VV</parameter>
+	<parameter id="pol" title="Polarization" abstract="Polarization" scope="runtime">VV</parameter>
 	<parameter id="slave" title="Sentinel-1 IW Slave" abstract="Define the InSAR Slave product. The product is passed by reference to catalogue entries"/>
       </defaultParameters>
       <defaultJobconf>       
@@ -13,6 +13,9 @@
     </jobTemplate>
     <jobTemplate id="aux_burst">
       <streamingExecutable>/application/aux_burst/run.sh</streamingExecutable>
+      <defaultParameters>
+	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="test"  target="geo:box" type="BoundingBoxData"></parameter>
+      </defaultParameters>
       <defaultJobconf>       
 	<property id="mapred.task.timeout">720000000</property>                      
       </defaultJobconf>
@@ -25,6 +28,10 @@
     </jobTemplate>
     <jobTemplate id="interf">
       <streamingExecutable>/application/interf/run.sh</streamingExecutable>
+      <defaultParameters>
+	<parameter id="cleanup" title="Delete Intermediate Files" abstract="Remove intermediate node results" scope="test">true</parameter>
+	<parameter id="psfiltx" title="Goldstein phase filter exponential factor" abstract="Phase filter exponential factor" scope="runtime">0.5</parameter>
+      </defaultParameters>
       <defaultJobconf>       
 	<property id="ciop.job.max.tasks">1</property>
         <property id="mapred.task.timeout">720000000</property>                      
