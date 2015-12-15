@@ -4,7 +4,15 @@
     <jobTemplate id="aux_swath">
       <streamingExecutable>/application/aux_swath/run.sh</streamingExecutable>
       <defaultParameters>
-	<parameter id="pol" title="Polarization" abstract="Polarization" scope="runtime">VV</parameter>
+	<parameter id="pol" title="Polarization" abstract="Polarization" scope="runtime">
+	  <options>
+	    <option>VV</option>
+	    <option>VH</option>
+	    <option>HH</option>
+	    <option>HV</option>
+	    <default>VV</default>
+	  </options>
+	</parameter>
 	<parameter id="slave" title="Sentinel-1 IW Slave" abstract="Define the InSAR Slave product. The product is passed by reference to catalogue entries"/>
       </defaultParameters>
       <defaultJobconf>       
@@ -14,7 +22,7 @@
     <jobTemplate id="aux_burst">
       <streamingExecutable>/application/aux_burst/run.sh</streamingExecutable>
       <defaultParameters>
-	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="test"  target="geo:box" type="BoundingBoxData"></parameter>
+	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="runtime"  target="geo:box" type="BoundingBoxData" minOccurs="0"></parameter>
       </defaultParameters>
       <defaultJobconf>       
 	<property id="mapred.task.timeout">720000000</property>                      
