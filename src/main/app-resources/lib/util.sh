@@ -118,7 +118,7 @@ get_data() {
                                                                                                                                                                  
   [ "${ref:0:4}" == "file" ] || [ "${ref:0:1}" == "/" ] && enclosure=${ref}                                                                                      
                                                                                                                                                                  
-  [ -z "$enclosure" ] && enclosure=$( opensearch-client "${ref}" enclosure )                                                                                     
+  [ -z "$enclosure" ] && enclosure=$( opensearch-client  -f atom  "${ref}" enclosure )                                                                                     
   res=$?                                                                                                                                                         
   enclosure=$( echo ${enclosure} | tail -1 )                                                                                                                     
   [ $res -eq 0 ] && [ -z "${enclosure}" ] && return ${ERR_GETDATA}                                                                                               
