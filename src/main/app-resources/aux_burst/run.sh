@@ -234,6 +234,16 @@ function main()
 	echo "${inputdata[0]}@${orbitmaster}@${inputdata[1]}@${burstmaster}@${inputdata[2]}@${orbitslave}@${inputdata[3]}@${burstslave}@$pol" | ciop-publish -s
 	let "burstmaster += 1" 
     done
+    
+    #if an aoi was defined by the user
+    #record it in a file and publish it
+    # in hdfs so next nodes can retrieve it
+    if [ -n "${inputaoi}" ]; then
+	local aoifile="${serverdir}/TEMP/aoi.txt"
+	echo "${inputaoi}" > "${aoifile}"
+	ciop-publish  -a "${aoifile}"
+    fi
+
 
     #cleanup processing directory
     procCleanup

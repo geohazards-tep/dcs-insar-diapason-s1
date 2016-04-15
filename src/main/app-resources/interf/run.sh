@@ -312,6 +312,16 @@ ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml${mlaz
 
 #crop output geotiffs if aoi is set
 declare -a aoi
+#look for an aoi file
+local wkid=${_WF_ID}
+local aoipath=`ciop-browseresults -r "${wkid}" -j node_burst | grep -i aoi | grep -i txt | head -1`
+local inputaoi=""
+if [ -n "${aoipath}" ]; then
+    hadoop dfs -copyToLocal "${aoipath}" "${mergedir}"
+    local aoifile=${mergedir}/`basename "${aoipath}"`
+    inputaoi=`grep -m 1 "[0-9]" ${aoifile}`
+fi
+
 [ -n "$inputaoi" ] && aoi=(`echo "${inputaoi}" | sed 's@,@ @g'`)
 
 [ ${#aoi[@]} -ge 4 ]   && {
