@@ -30,15 +30,26 @@ function extract_safe() {
 
   [ -n "${optional}" ] && safe=${optional}/${safe}
   mkdir -p ${safe}
+  
+  local annotlist=""
+  local measurlist=""
+  
+  if [ -n "${pol}" ]; then
+      annotlist=$( unzip -l "${safe_archive}" | grep annotation | grep .xml | grep -v calibration | awk '{ print $4 }' | grep -i "\-${pol}\-")
+      measurlist=$( unzip -l "${safe_archive}" | grep measurement | grep .tiff | awk '{ print $4 }'  | grep -i "\-${pol}\-")
+  else
+      annotlist=$( unzip -l "${safe_archive}" | grep annotation | grep .xml | grep -v calibration | awk '{ print $4 }' )
+      measurlist=$( unzip -l "${safe_archive}" | grep measurement | grep .tiff | awk '{ print $4 }' )
+  fi
 
-  for annotation in $( unzip -l "${safe_archive}" | grep annotation | grep .xml | grep -v calibration | awk '{ print $4 }' )
+  for annotation in $annotlist
   do
      unzip -o -j ${safe_archive} "${annotation}" -d "${safe}/annotation" 1>&2
      res=$?
      [ "${res}" != "0" ] && return ${res}
   done
   ciop-log "INFO" "Unzipped $( ls -l ${safe}/annotation )"
-  for measurement in $( unzip -l ${safe_archive} | grep measurement | grep .tiff | awk '{ print $4 }' )
+  for measurement in $measurlist
   do
     unzip -o -j ${safe_archive} "${measurement}" -d "${safe}/measurement" 1>&2
     res=$?
