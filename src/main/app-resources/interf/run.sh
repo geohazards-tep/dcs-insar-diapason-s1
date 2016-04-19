@@ -161,7 +161,7 @@ function deburst_swath()
     ciop-log "INFO" "swath is $swath"
     
     #create dem descriptor from input geotiff dem
-    tifdemimport.pl --intif="${indem}" --outdir="${procdir}" --exedir="${EXE_DIR}" --datdir="${DAT_DIR}" >  "${procdir}/demimport.log" 2<&1
+    tifdemimport.pl --intif="${indem}" --outdir="${procdir}" --exedir="${EXE_DIR}" --datdir="${DAT_DIR}" >  "${procdir}/demimport_sw${swath}.log" 2<&1
     
     masterburst=-1
     
@@ -224,9 +224,9 @@ function deburst_swath()
     mkdir -p ${procdir}/SW${swath}_DEBURST/{DAT/GEOSAR,SLC_CI2,GEO_CI2,log,DIF_INT,TEMP,ORB}
     deburstdir=${procdir}/SW${swath}_DEBURST
     
-    masterlist=${deburstdir}/DAT/master.txt
+    masterlist=${deburstdir}/DAT/master_list_sw${swath}.txt
     
-    slavelist=${deburstdir}/DAT/slave.txt
+    slavelist=${deburstdir}/DAT/slave_list_sw${swath}.txt
     
     for b in `seq $burst0 $burstn`;do
 	echo ${procdir}/SW${swath}_BURST_$b/SLC_CI2/${master}_SLC.ci2 >> "${masterlist}"
@@ -235,9 +235,9 @@ function deburst_swath()
     
 
 #debursting
-    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar --geosarout=${deburstdir}/DAT/GEOSAR/${master}.geosar --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${masterlist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${master}.log 2<&1
+    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar --geosarout=${deburstdir}/DAT/GEOSAR/${master}.geosar --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${masterlist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${master}_sw${swath}.log 2<&1
 
-    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar  --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${slavelist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${slave}.log 2<&1
+    tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar  --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${slavelist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${slave}_sw${swath}.log 2<&1
 
 #swath level interf
     slavegeo=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${slave}.geosar
@@ -300,14 +300,14 @@ sw=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
 #create interferogram
 local psfiltopt=""
 [ -n "${psfiltx}" ] && psfiltopt="--psfiltx=${psfiltx}"
-interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --mlaz=${mlaz} --mlran=${mlran} --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf.log 2<&1
+interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --mlaz=${mlaz} --mlran=${mlran} --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf_sw${sw}.log 2<&1
 
 #create geotiff results
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
 
 
 #crop output geotiffs if aoi is set
@@ -336,8 +336,15 @@ fi
 
 #publish results
 ciop-publish -m "${mergedir}/DIF_INT/*.tiff" 
-ciop-publish "${mergedir}/*.log" -r -a
-find ${procdir} -iname "*.log" -exec ciop-publish "${mergedir}/*.log" -r -a '{}' \;
+mkdir -p ${procdir}/log 2>/dev/null
+
+find ${procdir} -iname "*.log" -exec cp '{}' ${procdir}/log  \;
+find ${procdir} -iname "*list*.txt" -exec cp '{}' ${procdir}/log  \;
+local logzip="${procdir}/TEMP/logs.zip"
+cd "${procdir}"
+zip "${logzip}" log/*
+ciop-publish -m "${logzip}"
+cd -
 
 #convert all the tif files to png so that the results can be seen on the GeoBrowser
 
@@ -449,6 +456,8 @@ done
 ciop-log "INFO" "Merging sub-swaths"
 merge_swaths ${master} ${slave} "${serverdir}" "${serverdir}/dem.dat" 2 8 "${swath_list}"
 
+
+
 let "count += 1"
 
 [ "${nodecleanup}" == "true" ]  && {
@@ -461,6 +470,7 @@ let "count += 1"
 	done
     done
 }
+
 
 procCleanup
 
