@@ -333,6 +333,26 @@ fi
     done
 }
 
+#run alt_ambig
+mkdir -p "${mergedir}/DAT/"
+local ambigdat="${mergedir}/DAT/AMBIG.dat"
+setlatlongeosar.pl --geosar="${mergedir}/${master}.geosar"
+local orbitmaster=`grep "ORBITAL FILE" "${mergedir}/${master}.geosar" | cut -b 40-1024 | sed 's@^[[:space:]]*@@g;s@[[:space:]]*$@@g'`
+local orbitslave=`grep "ORBITAL FILE" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar" | cut -b 40-1024 | sed 's@^[[:space:]]*@@g;s@[[:space:]]*$@@g'`
+
+echo -e "${orbitmaster}\n${orbitslave}" | alt_ambig.pl --geosar="${mergedir}/${master}.geosar" -o "${ambigdat}"
+
+if [ ! -e "${ambigdat}" ]; then
+    ciop-log "Info" "Missing AMBIG.dat file"
+fi
+
+#create properties files for each geotiff
+create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.tiff | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+
+create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.tiff | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+
+create_interf_properties "`ls ${mergedir}/DIF_INT/coh*.tiff | head -1`" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+
 
 #publish results
 ciop-publish -m "${mergedir}/DIF_INT/*.tiff" 
@@ -363,6 +383,16 @@ if [ -n "`type -p convert`" ]; then
     phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | head -1`
     [ -n "$phase" ] && convert -alpha activate "${phase}" "${phase%.*}.png"
 fi
+
+#create properties files for each geotiff
+create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.png | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+
+create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.png | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+
+create_interf_properties "`ls ${mergedir}/DIF_INT/coh*.png | head -1`" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+
+#publish the properties files
+ciop-publish -m "${mergedir}/DIF_INT/*.properties"
 
 #publish png and their pngw files
 ciop-publish -m "${mergedir}"/DIF_INT/*.png
