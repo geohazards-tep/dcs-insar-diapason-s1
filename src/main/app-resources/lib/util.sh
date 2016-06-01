@@ -346,3 +346,67 @@ function s1_bursts_aoi()
 	
 	return 0
 }
+
+
+function create_interf_properties()
+{
+    if [ $# -lt 4 ]; then
+	echo "$FUNCNAME : usage:$FUNCNAME file description serverdir geosar"
+	return 1
+    fi
+
+    local inputfile=$1
+    local fbase=`basename ${inputfile}`
+    local description=$2
+    local serverdir=$3
+    local geosarm=$4
+    local geosars=""
+    if [ $# -ge 5 ]; then
+    geosars=$5
+    fi
+
+    local propfile="${inputfile}.properties"
+    echo "title = ${fbase}" > "${propfile}"
+    echo "Description = ${description}" >> "${propfile}"
+    local sensor=`grep -h "SENSOR NAME" "${geosarm}" | cut -b 40-1024 | awk '{print $1}'`
+    echo "Sensor\ Name = ${sensor}" >> "${propfile}"
+
+    #look for 2jd utility to convert julian dates
+    if [ -n "`type -p j2d`"  ] && [ -n "${geosars}" ]; then
+	local jul1=`grep -h JULIAN "${geosarm}" | cut -b 40-1024 | sed 's@[^0-9]@@g'`
+	local jul2=`grep -h JULIAN "${geosars}" | cut -b 40-1024 | sed 's@[^0-9]@@g'`
+	if [ -n "${jul1}"  ] && [ -n "${jul2}" ]; then 
+	
+	    local dates=""
+	    for jul in `echo -e "${jul1}\n${jul2}" | sort -n`; do
+		local julday=`echo "2433283+${jul}" | bc -l`
+		local dt=`j2d ${julday} | awk '{print $1}'`
+		
+		dates="${dates} ${dt}"
+	    done
+	   
+	fi
+	echo "Observation\ Dates = $dates" >> "${propfile}"
+    fi
+
+    local altambig="${serverdir}/DAT/AMBIG.dat"
+    if [ -e "${altambig}" ] ; then
+	local info=($(grep -E "^[0-9]+" "${altambig}" | head -1))
+	if [  ${#info[@]} -ge 6 ]; then
+	    #write incidence angle
+	    echo "Incidence\ angle\ \(degrees\) = "${info[2]} >> "${propfile}"
+	    #write baseline
+	    local bas=`echo ${info[4]} | awk '{ if($1>=0) {print $1} else { print $1*-1} }'`
+	    echo "Baseline\ \(meters\) = ${bas}" >> "${propfile}"
+	else
+	    ciop-log "INFO" "Invalid format for AMBIG.DAT file "
+	fi
+    else
+	ciop-log "INFO" "Missing AMBIG.DAT file in ${serverdir}/DAT"
+    fi 
+
+    local publishdate=`date +'%B %d %Y' `
+    echo "Published = ${publishdate}" >> "${propfile}"
+    
+
+}
