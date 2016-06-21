@@ -410,3 +410,62 @@ function create_interf_properties()
     
 
 }
+
+
+function download_dem_from_ref()
+{
+    if [ $# -lt 2 ]; then
+	ciop-log "ERROR" "$FUNCNAME:ref directory "
+	return ${ERRMISSING}
+    fi
+
+    local ref="$1"
+    local outputdir="$2"
+
+    #look for the extent of the scene
+    local wkt=($(opensearch-client -f atom "$ref" wkt | sed 's@[a-zA-Z()]@@g' | sed 's@,@ @g'))
+    
+    if [ -z  "${wkt}" ]; then
+	ciop-log "ERROR " "Missing wkt info for ref $ref"
+	return ${MISSING}
+    fi
+
+    
+    local lon
+    local lat
+
+    lon=(`echo "${wkt[@]}" | sed 's@ @\n@g' | sed -n '1~2p' | sort -n | sed -n '1p;$p' | sed 's@\n@ @g'`)
+    lat=(`echo "${wkt[@]}" | sed 's@ @\n@g' | sed -n '2~2p' | sort -n | sed -n '1p;$p' | sed 's@\n@ @g'`)
+
+    if [ ${#lon[@]} -ne 2 ] || [ ${#lat[@]} -ne 2 ]; then
+	ciop-log "ERROR" "Bad format for wkt description"
+	return ${ERRINVALID}
+    fi
+
+    
+    
+    local demurl="http://www.altamira-information.com/demdownload?lat="${lat[0]}"&lat="${lat[1]}"&lon="${lon[0]}"&lon="${lon[1]}
+    
+    ciop-log "INFO " "Downloading DEM from ${demurl}"
+    
+    
+    local demtif=${outputdir}/dem.tif
+    
+    local downloadcmd="curl -o \"${demtif}\" \"${demurl}\" "
+    
+    eval "${downloadcmd}" > "${outputdir}"//demdownload.log 2<&1
+
+    #check downloaded file
+    if [ ! -e "${demtif}" ]; then
+	ciop-log "ERROR" "Unable to download DEM data"
+	return ${ERRGENERIC}
+    fi
+
+    #check it is a tiff
+    gdalinfo "${demtif}" > /dev/null 2<&1 || {
+	ciop-log "ERROR" "No DEM data over selected area"
+	return ${ERRGENERIC}
+    }
+
+    return ${SUCCESS}
+}
