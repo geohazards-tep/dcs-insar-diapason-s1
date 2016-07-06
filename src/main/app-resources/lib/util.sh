@@ -469,3 +469,96 @@ function download_dem_from_ref()
 
     return ${SUCCESS}
 }
+
+
+# create a shapefile from a bounding box string
+# arguments:
+# bounding box string of the form "minlon,minlat,maxlon,maxlat"
+# output diretory where shapefile shall be created
+# tag used to name the shapefile
+function aoi2shp()
+{
+    if [ $# -lt 3 ]; then
+	ciop-log "ERROR" "Usage:$FUNCTION minlon,minlat,maxlon,maxlat directory tag"
+	return ${ERRMISSING}
+    fi
+
+    local aoi="$1"
+
+    local directory="$2"
+
+    local tag="$3"
+
+    if [ ! -d "`readlink -f $directory`" ]; then
+	ciop-log "ERROR" "$FUNCTION:$directory is not a directory"
+	return ${ERRINVALID}
+    fi
+
+    #check for aoi validity
+    local aoiarr=(`echo ${aoi} | sed 's@,@ @g' `)
+
+    local nvalues=${#aoiarr[@]}
+
+    if [ $nvalues -lt 4 ]; then
+	ciop-log "ERROR" "$FUNCTION:Invalid aoi :$aoi"
+	ciop-log "ERROR" "$FUNCTION:Should be of the form: minlon,minlat,maxlon,maxlat"
+	return ${ERRINVALID}
+    fi
+
+    #use a variable for each
+    local maxlon=${aoiarr[2]}
+    local maxlat=${aoiarr[3]}
+    local minlon=${aoiarr[0]}
+    local minlat=${aoiarr[1]}
+
+    #check for shapelib utilities
+    if [ -z "`type -p shpcreate`" ]; then
+	ciop-log "ERROR" "Missing shpcreate utility"
+	return ${ERRMISSING}
+    fi
+
+    if [ -z "`type -p shpadd`" ]; then
+	ciop-log "ERROR" "Missing shpadd utility"
+	return ${ERRMISSING}
+    fi
+
+    #enter the output shapefile directory
+    cd "${directory}" || {
+	ciop-log "ERROR" "$FUNCTION:No permissions to access ${directory}"
+	cd -
+	return ${ERRPERM}
+}
+    
+
+    #create empty shapefile
+    shpcreate "${tag}" polygon
+    local statuscreat=$?
+
+    if [ ${statuscreat}  -ne 0 ]; then
+	cd -
+	ciop-log "ERROR" "$FUNCTION:Shapefile creation failed"
+	return ${ERRGENERIC}
+    fi 
+
+    shpadd "${tag}" "${minlon}" "${minlat}" "${maxlon}" "${minlat}" "${maxlon}" "${maxlat}"  "${minlon}" "${maxlat}" "${minlon}" "${minlat}"
+    
+    local statusadd=$?
+
+    if [ ${statusadd} -ne 0 ]; then
+	ciop-log "ERROR" "$FUNCTION:Failed to add polygon to shapefile"
+	return ${ERRGENERIC}
+    fi
+    
+  local shp=${directory}/${tag}.shp
+
+  if [ ! -e "${shp}" ]; then
+      cd -
+      ciop-log "ERROR" "$FUNCTION:Failed to create shapefile"
+      return ${ERRGENERIC}
+  fi
+
+  echo "${shp}"
+
+  return ${SUCCESS}
+
+ }
