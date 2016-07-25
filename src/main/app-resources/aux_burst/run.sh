@@ -226,12 +226,12 @@ function main()
 	procCleanup
         return ${ERRGENERIC}
     fi
-    burstmaster=${BURSTSTART}
+    local burstmaster=${BURSTSTART}
 
     #pass master@swath_master@burst_master@slave@swath_slave@burst_slave@ to next node
     for burst in `seq 0 $((nbursts-1))`; do
 	burstslave=${SLAVEBURSTLIST[$burst]}
-	echo "${inputdata[0]}@${orbitmaster}@${inputdata[1]}@${burstmaster}@${inputdata[2]}@${orbitslave}@${inputdata[3]}@${burstslave}@$pol" | ciop-publish -s
+	#echo "${inputdata[0]}@${orbitmaster}@${inputdata[1]}@${burstmaster}@${inputdata[2]}@${orbitslave}@${inputdata[3]}@${burstslave}@$pol" | ciop-publish -s
 	let "burstmaster += 1" 
     done
     
@@ -244,6 +244,126 @@ function main()
 	ciop-publish  -a "${aoifile}"
     fi
 
+    #create a directory for the subswath coregistration process
+    local esddir=`mktemp -d "${TMPDIR}/coreg_s1_XXXXXX"`
+
+    if [ -z "${esddir}" ]; then
+	ciop-log "ERROR" "Cannot create processing directory"
+	procCleanup
+	return ${ERRGENERIC}
+    fi
+
+    mkdir -p ${esddir}/{CD,DEM,DAT} || {
+	ciop-log "ERROR" "Cannot create processing directory"
+	procCleanup
+	return ${ERRGENERIC}
+}
+
+    #move the extracted products to the CD subdirectory
+    mv ${serverdir}/CD/* ${esddir}/CD/
+
+    #create the DEM descriptor
+    tifdemimport.pl --intif="${tifdem}" --outdir="${esddir}/DEM/" --exedir="${EXE_DIR}" --datdir="${DAT_DIR}" >  "${esddir}/DEM/demimport.log" 2<&1
+    
+    #cleanup serverdir processing directory
+    procCleanup
+    
+    export serverdir="${esddir}"
+
+    export DEM="${esddir}/DEM/dem.dat"
+    
+    if [ ! -e "${DEM}" ]; then
+	ciop-log "ERROR" "Failed to create dem descriptor"
+	msg=`cat "${esddir}/DEM/demimport.log"`
+	ciop-log "INFO" "${msg}"
+	procCleanup
+	return ${ERRGENERIC}
+    fi
+
+    #define environment
+    export ROOT_DIR="${esddir}"
+    
+    #SCRIPTS DIRECTORY
+    export SCRIPT_DIR="/tmp/template.dir/"
+    export PRODUCT1="${serverdir}/CD/${inputdata[0]}"
+    export PRODUCT2="${serverdir}/CD/${inputdata[2]}"
+    
+    #MULTILOOK PARAMETERS
+    export MLAZ=2
+    export MLRAN=8
+    
+    #SWATH TO PROCESS
+    #USED BY process_tops_insar_icc.sh SCRIPT
+    #MAY BE LEFT BLANK WHEN RUNNING tops_sack.sh
+    export SWATH=${swathmaster}
+    
+    
+    #SLIDNIG WINDOW FOR ESD
+    export ESD_WINAZI=4
+    export ESD_WINRAN=16
+    
+    #POLARIZATION TO PROCESS
+    #LEAVE BLANK IF UNKNOWN
+    export POL
+
+
+      #number of iterations for the ESD process
+    export NESDITER=2
+    local ESDTAG=`echo "${NESDITER} - 1" | bc -l` 
+    #aoi
+    if [ -n "${inputaoi}" ]; then
+	local AOI_SHP=$(aoi2shp "${inputaoi}" "${esddir}/DAT" "aoi")
+	[ -n "${AOI_SHP}" ] && {
+	    export AOI_SHP
+	}
+    else
+	unset AOI_SHP
+    fi
+
+    #processing
+    ${SCRIPT_DIR}/process_tops_insar_icc.sh > ${esddir}/process_sw${swathmaster}.log 2<&1
+    chmod -R 775 ${esddir}
+    local procesdstatus=$?
+
+    if [ ${procesdstatus} -ne 0  ]; then
+	ciop-log "ERROR" "procesing of swath ${swathmaster} failed"
+	cp ${esddir}/*.log /tmp
+	cp ${esddir}/*.log /tmp
+	cp ${esddir}/*.dat /tmp
+	procCleanup
+	return ${ERRGENERIC}
+    fi
+    
+    
+    find ${esddir} -type f -print > /tmp/files_processed_sw${swathmaster}.txt 2<&1
+
+    #look for the processing directories to publish to next node
+    burstmaster=${BURSTSTART}
+
+    #for every burst
+    for burst in `seq 0 $((nbursts-1))`; do
+	local procburstdir="${esddir}/SW_${swathmaster}_POL_${POL}_BURST_${burstmaster}"
+	
+	 #clean the directory
+	rm -rf ${procburstdir}/DIF_INT* 2>/dev/null
+	rm -f ${procburstdir}${GEO_CI2}/*
+	rm -f ${procburstdir}${GEO_CI2_EXT_LIN}/* 2>/dev/null
+	rm -f ${procburstdir}/SLC_CI2/${orbitslave}*SLC* 2>/dev/null
+	rm -f ${procburstdir}/SLC_CI2/*DERAMP* 2>/dev/null
+	mv ${procburstdir}/ESD_iter_glob_${ESDTAG}/geo*RERAMP*.* ${procburstdir}/GEO_CI2/
+	rm -f ${procburstdir}/GEO_CI2/geo_${orbitmaster}*.* 2>/dev/null
+	rm -rf ${procburstdir}/ESD_iter_glob_${ESDTAG}/*
+	mv ${procburstdir} ${esddir}/SW${swathmaster}_BURST_${burstmaster}
+	rm -rf ${procburstdir}/*DEBURSTED*
+	procburstdir=${esddir}/SW${swathmaster}_BURST_${burstmaster}
+	#publish to next node
+	ciop-publish "${procburstdir}" -r -a
+
+	let "burstmaster += 1"
+    done
+
+    #pass orbit master@orbit slave to next node
+    echo "${orbitmaster}@${orbitslave}" | ciop-publish -s
 
     #cleanup processing directory
     procCleanup

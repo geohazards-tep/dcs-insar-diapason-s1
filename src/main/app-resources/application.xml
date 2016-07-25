@@ -25,12 +25,7 @@
 	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="runtime"  target="geo:box" type="BoundingBoxData" minOccurs="0"></parameter>
       </defaultParameters>
       <defaultJobconf>       
-	<property id="mapred.task.timeout">720000000</property>                      
-      </defaultJobconf>
-    </jobTemplate>
-    <jobTemplate id="coreg_burst">
-      <streamingExecutable>/application/coreg/run.sh</streamingExecutable>
-      <defaultJobconf>       
+	<property id="ciop.job.max.tasks">1</property>
 	<property id="mapred.task.timeout">720000000</property>                      
       </defaultJobconf>
     </jobTemplate>
@@ -63,16 +58,10 @@
         <source refid="wf:node">node_swath</source>
       </sources>
     </node>
-    <node id="node_coreg">
-      <job id="coreg_burst" />
-      <sources>
-	<source refid="wf:node">node_burst</source>
-      </sources>
-    </node>
-        <node id="node_interf">
+    <node id="node_interf">
       <job id="interf" />
       <sources>
-	<source refid="wf:node">node_coreg</source>
+	<source refid="wf:node">node_burst</source>
       </sources>
     </node>
   </workflow>
