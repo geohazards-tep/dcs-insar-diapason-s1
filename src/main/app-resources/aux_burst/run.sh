@@ -321,7 +321,7 @@ function main()
     fi
 
     #processing
-    ${SCRIPT_DIR}/process_tops_insar_icc.sh > ${esddir}/process_sw${swathmaster}.log 2<&1
+    ${SCRIPT_DIR}/s1_process_swath.sh > ${esddir}/process_sw${swathmaster}.log 2<&1
     chmod -R 775 ${esddir}
     local procesdstatus=$?
 
@@ -335,7 +335,6 @@ function main()
     fi
     
     
-    find ${esddir} -type f -print > /tmp/files_processed_sw${swathmaster}.txt 2<&1
 
     #look for the processing directories to publish to next node
     burstmaster=${BURSTSTART}
