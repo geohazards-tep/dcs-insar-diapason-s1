@@ -39,7 +39,7 @@ function get_available_swath_list()
 	idopt="-r ${runid} "
     fi
     
-    swathlist=$(ciop-browseresults ${idopt} | grep SW[0-9]*_BURST  | xargs -L1 sh -c 'basename $1 2>/dev/null' arg | sed 's@\(SW\)\([0-9]*\)\(.*\)@\2@g' | sort -n --unique )
+    swathlist=$(ciop-browseresults ${idopt} -j node_burst | grep SW[0-9]*_BURST  | xargs -L1 sh -c 'basename $1 2>/dev/null' arg | sed 's@\(SW\)\([0-9]*\)\(.*\)@\2@g' | sort -n --unique )
     echo $swathlist
     [ -z "${swathlist}" ] && return 1
     
@@ -169,7 +169,7 @@ function deburst_swath()
     local wkid=${_WF_ID}
 
     # stage in results from previous node
-    for r in `ciop-browseresults -r ${wkid}  -j node_coreg | grep "SW${swath}_BURST_[0-9]*" | sort -n`; do
+    for r in `ciop-browseresults -r ${wkid}  -j node_burst | grep "SW${swath}_BURST_[0-9]*" | sort -n`; do
 	hadoop dfs -copyToLocal "$r" "${procdir}"
 
 	status=$?
@@ -179,6 +179,9 @@ function deburst_swath()
 	    return $status
 	fi
     done 
+    
+    #make sure the permissions are ok on the files imported from hdfs
+    chmod -R 775 "${procdir}"
 
     #look for first master burst
 
@@ -233,7 +236,7 @@ function deburst_swath()
 	echo ${procdir}/SW${swath}_BURST_$b/GEO_CI2/geo_${slave}_${master}_RERAMP.cr4 >> "${slavelist}"
     done
     
-
+    
 #debursting
     tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar --geosarout=${deburstdir}/DAT/GEOSAR/${master}.geosar --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${masterlist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${master}_sw${swath}.log 2<&1
 
@@ -454,7 +457,6 @@ slave=${inputs[1]}
 ciop-log "INFO" "Master orbit is ${master}"
 ciop-log "INFO" "Slave orbit is ${slave}"
 
-
 swath_list=$(get_available_swath_list ${_WF_ID} )
 
 if [ -z "${swath_list}" ]; then
@@ -464,7 +466,6 @@ if [ -z "${swath_list}" ]; then
 fi 
 
   ciop-log "INFO" "swath list ${swath_list}"
-  
 
 merge_dems ${serverdir} || {
     echo "unable to merge dems ! $?"
