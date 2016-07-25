@@ -284,7 +284,7 @@ function main()
     export ROOT_DIR="${esddir}"
     
     #SCRIPTS DIRECTORY
-    export SCRIPT_DIR="/tmp/template.dir/"
+    export SCRIPT_DIR="/opt/diapason/gep.dir/"
     export PRODUCT1="${serverdir}/CD/${inputdata[0]}"
     export PRODUCT2="${serverdir}/CD/${inputdata[2]}"
     
