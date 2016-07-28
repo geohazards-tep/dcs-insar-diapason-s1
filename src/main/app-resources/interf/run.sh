@@ -296,9 +296,14 @@ function merge_swaths()
 mkdir -p ${mergedir}/DIF_INT
 
 #fix geosar
-perl -pi -e 's@\(AZIMUTH DOPPLER VALUE\)\([[:space:]]*\)\([^\n]*\)@\1\20.0@g' "${mergedir}/${master}.geosar"
+perl -pi -e 's@(AZIMUTH DOPPLER VALUE)([[:space:]]*)([^\n]*)@${1}${2}0.0@g' "${mergedir}/${master}.geosar"
+
+#fix slave geosars as well
+find "${procdir}" -name "*.geosar" -exec perl -pi -e 's@(AZIMUTH DOPPLER VALUE)([[:space:]]*)([^\n]*)@${1}${2}0.0@g' '{}' \;
+
 
 sw=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
+
 
 #create interferogram
 local psfiltopt=""
