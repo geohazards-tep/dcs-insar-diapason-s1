@@ -411,7 +411,24 @@ return 0
 
 }
 
+#detect if the processed pair is IW or EW mode
+function detect_sensor_mode()
+{
+    if [ $# -lt 1 ]; then
+	return $ERRMISSING
+    fi
 
+    local procdir="$1"
+
+    local procmode=`find "${procdir}" -name "*.geosar" -exec grep "^MODE" '{}' \; | cut -b 40-1024 | sed 's@[[:space:]]@@g' | grep "IW\|EW" | head -1`
+    
+    [ -n "${procmode}" ] && {
+	echo "${procmode}"
+	return $SUCCESS
+    }
+    
+    return $ERRINVALID
+}
 
 #begin
 unset serverdir
@@ -488,9 +505,17 @@ ciop-log "INFO" "swath interf $status"
 
 done
 
+mode=$(detect_sensor_mode "${serverdir}")
+
+MLAZ=2
+MLRAN=8
+
+if [ -n "${mode}" ] && [ "${mode}" ==  "EW" ] ; then
+    MLRAN=4
+fi
 
 ciop-log "INFO" "Merging sub-swaths"
-merge_swaths ${master} ${slave} "${serverdir}" "${serverdir}/dem.dat" 2 8 "${swath_list}"
+merge_swaths ${master} ${slave} "${serverdir}" "${serverdir}/dem.dat" ${MLAZ} ${MLRAN} "${swath_list}"
 
 
 
