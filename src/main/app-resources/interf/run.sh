@@ -228,12 +228,17 @@ function deburst_swath()
     deburstdir=${procdir}/SW${swath}_DEBURST
     
     masterlist=${deburstdir}/DAT/master_list_sw${swath}.txt
+    local fmllist=${deburstdir}/DAT/master_deburst_input_list_sw${swath}.txt
     
+
     slavelist=${deburstdir}/DAT/slave_list_sw${swath}.txt
+    local fsllist=${deburstdir}/DAT/slave_deburst_input_list_sw${swath}.txt
     
     for b in `seq $burst0 $burstn`;do
 	echo ${procdir}/SW${swath}_BURST_$b/SLC_CI2/${master}_SLC.ci2 >> "${masterlist}"
+	ls -l ${procdir}/SW${swath}_BURST_$b/SLC_CI2/${master}_SLC.* >> "${fmllist}" 2<&1
 	echo ${procdir}/SW${swath}_BURST_$b/GEO_CI2/geo_${slave}_${master}_RERAMP.cr4 >> "${slavelist}"
+	ls -l ${procdir}/SW${swath}_BURST_$b/GEO_CI2/geo_${slave}_${master}_RERAMP.* >> "${fsllist}" 2<&1
     done
     
     
