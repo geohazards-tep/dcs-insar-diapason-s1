@@ -26,7 +26,7 @@ function trapFunction()
 function extract_safe() {
   safe_archive=${1}
   optional=${2}
-  safe=$( unzip -l ${safe_archive} | grep "SAFE" | head -n 1 | awk '{ print $4 }' | xargs -I {} basename {} )
+  safe=$( unzip -l ${safe_archive} | grep "SAFE" | grep -v zip | head -n 1 | awk '{ print $4 }' | xargs -I {} basename {} )
 
   [ -n "${optional}" ] && safe=${optional}/${safe}
   mkdir -p ${safe}
@@ -88,10 +88,15 @@ function main(){
   slaveref=$( echo "${1}" |  sed 's:[;@]: :g' | awk '{print $2}' )
   [ -z "${slaveref}" ] && return ${ERR_SLAVE}
   
+  local datadir="${serverdir}"
+  [ -z "${datadir}" ] && {
+      datadir="${TMPDIR}"
+}
+
   ciop-log "INFO" "Getting Master"
   ciop-log "INFO" "Master ref : ${masterref}"
   
-  master=$( get_data ${masterref} ${TMPDIR}/download/master )
+  master=$( get_data ${masterref} ${datadir}/download/master )
   res=$?
   [ "${res}" != "0" ] && {
       ciop-log "ERROR" "Failed to download ${masterref}"
@@ -102,7 +107,7 @@ function main(){
 
   ciop-log "INFO" "Getting Slave"
   ciop-log "INFO" "Slave ref : ${slaveref}"
-  slave=$( get_data ${slaveref} ${TMPDIR}/download/slave )
+  slave=$( get_data ${slaveref} ${datadir}/download/slave )
   res=$?
   [ "${res}" != "0" ] && { 
       ciop-log "ERROR" "Failed to download ${slaveref}"
@@ -149,11 +154,11 @@ fi
 
 
   ciop-log "INFO" "Extracting master"
-  master_safe=$( extract_safe ${master} ${TMPDIR}/data/master )
+  master_safe=$( extract_safe ${master} ${datadir}/data/master )
   [ "$?" != "0" ] && return ${ERR_EXTRACT}
 
   ciop-log "INFO" "Extracting slave"
-  slave_safe=$( extract_safe ${slave} ${TMPDIR}/data/slave )
+  slave_safe=$( extract_safe ${slave} ${datadir}/data/slave )
   [ "$?" != "0" ] && return $ERR_EXTRACT
 
   refmaster=`basename ${master_safe}`
@@ -182,8 +187,8 @@ do
     ciop-log "INFO" "param : $slave"
     pair="${master};${slave}"
     export serverdir=${TMPDIR}/$( uuidgen )
-    mkdir -p ${TMPDIR}/download/master
-    mkdir -p ${TMPDIR}/download/slave
+    mkdir -p ${serverdir}/download/master
+    mkdir -p ${serverdir}/download/slave
     main ${pair}
     [ "${res}" != "0" ] && {
 	procCleanup
