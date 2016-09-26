@@ -92,7 +92,13 @@ function main(){
   [ -z "${datadir}" ] && {
       datadir="${TMPDIR}"
 }
-
+  #make sure the master and slave image intesect !
+  product_intersect "${masterref}" "${slaveref}" || {
+      ciop-log "ERROR : slave and master image do not intersect"
+      exit ${ERRINVALID}
+  }
+  
+  
   ciop-log "INFO" "Getting Master"
   ciop-log "INFO" "Master ref : ${masterref}"
   
@@ -137,6 +143,8 @@ function main(){
       ciop-log "ERROR : slave and master image are from different modes"
       exit ${ERRINVALID}
 fi
+
+
 
 mode="${masterinfo[1]}"
 nswaths=0
