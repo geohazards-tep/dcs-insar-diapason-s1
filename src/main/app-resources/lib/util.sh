@@ -562,3 +562,96 @@ function aoi2shp()
   return ${SUCCESS}
 
  }
+
+
+# check the intersection between 2 products
+# arguments:
+# ref1 ref2 catalogue references to each product 
+#return 0 if products intersect , non zero otherwise
+function product_intersect()
+{
+    if [ $# -lt 2 ]; then
+	ciop-log "ERROR" "$FUNCNAME:ref1 ref2"
+	return 255
+    fi
+
+    local ref1="$1"
+    local ref2="$2"
+    
+        #look for the extent of the scene
+    local wkt1=($(opensearch-client -f atom "$ref1" wkt ))
+    local wkt2=($(opensearch-client -f atom "$ref2" wkt ))
+
+    n1=${#wkt1[@]}
+    n2=${#wkt2[@]}
+
+    #if wkt info is missing for at least
+    # 1 product , cannot check intersection
+    # assume it is ok
+    if [ $n1 -eq 0 ] || [ $n2 -eq 0 ]; then
+	 ciop-log "INFO" "Missing wkt info"
+	return 0
+    fi
+
+    polygon_intersect wkt1[@]} wkt2[@]}
+    
+    status=$?
+
+    return $status
+}
+
+# check the intersection between 2 polygons
+# arguments:
+# 2 arrays with polygon geometry definitions
+# call: polygon_intersect wkt1[@] wkt2[@] 
+#return 0 if products intersect , non zero otherwise
+function polygon_intersect()
+{
+    if [ $# -lt 2 ]; then
+	ciop-log "ERROR" "$FUNCNAME:poly1 poly2"
+	return 255
+    fi
+
+    declare -a wkt1=("${!1}")
+    declare -a wkt2=("${!2}")
+    
+    
+    /usr/bin/python - <<END
+import sys
+try:
+  from osgeo import ogr
+except ImportError:
+  sys.exit(0)
+
+wkt1="${wkt1[@]}"
+wkt2="${wkt2[@]}"
+
+status=0
+  
+try:
+# Create spatial reference
+  out_srs = ogr.osr.SpatialReference()
+  out_srs.ImportFromEPSG(4326)
+
+  poly1 = ogr.CreateGeometryFromWkt(wkt1)
+  poly1.AssignSpatialReference(out_srs)
+  poly2 = ogr.CreateGeometryFromWkt(wkt2)
+  poly2.AssignSpatialReference(out_srs)
+
+  intersection=poly2.Intersection(poly1)
+
+  if intersection.IsEmpty():
+     status=1
+except Exception,e:
+  sys.exit(0)
+
+sys.exit( status )
+
+END
+local status=$?
+
+if [ $status -ne 0 ]; then
+    return 1
+fi
+
+}
