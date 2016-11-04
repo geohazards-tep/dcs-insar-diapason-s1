@@ -4,7 +4,7 @@
     <jobTemplate id="aux_swath">
       <streamingExecutable>/application/aux_swath/run.sh</streamingExecutable>
       <defaultParameters>
-	<parameter id="pol" title="Polarization" abstract="Polarization" scope="runtime">
+	<parameter id="pol" title="Polarization" abstract="Polarization" scope="runtime" maxOccurs="1">
 	  <options>
 	    <option>VV</option>
 	    <option>VH</option>
@@ -13,7 +13,7 @@
 	    <default>VV</default>
 	  </options>
 	</parameter>
-	<parameter id="slave" title="Sentinel-1 IW Slave" abstract="Define the InSAR Slave product. The product is passed by reference to catalogue entries"/>
+	<parameter id="slave" title="Sentinel-1 IW Slave" abstract="Define the InSAR Slave product. The product is passed by reference to catalogue entries" maxOccurs="1"  />
       </defaultParameters>
       <defaultJobconf>       
 	<property id="mapred.task.timeout">720000000</property>                      
@@ -22,7 +22,7 @@
     <jobTemplate id="aux_burst">
       <streamingExecutable>/application/aux_burst/run.sh</streamingExecutable>
       <defaultParameters>
-	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="runtime"  target="geo:box" type="BoundingBoxData" minOccurs="0"></parameter>
+	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="runtime"  target="geo:box" type="BoundingBoxData" minOccurs="0" maxOccurs="1"></parameter>
       </defaultParameters>
       <defaultJobconf>       
 	<property id="ciop.job.max.tasks">1</property>
@@ -33,7 +33,7 @@
       <streamingExecutable>/application/interf/run.sh</streamingExecutable>
       <defaultParameters>
 	<parameter id="cleanup" title="Delete Intermediate Files" abstract="Remove intermediate node results" scope="test">true</parameter>
-	<parameter id="psfiltx" title="Goldstein phase filter exponential factor" abstract="Phase filter exponential factor" scope="runtime">0.5</parameter>
+	<parameter id="psfiltx" title="Goldstein phase filter exponential factor" abstract="Phase filter exponential factor" scope="runtime" maxOccurs="1">0.5</parameter>
       </defaultParameters>
       <defaultJobconf>       
 	<property id="ciop.job.max.tasks">1</property>
