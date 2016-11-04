@@ -384,7 +384,19 @@ cd -
 #first do the coherence and amplitude ,for which 0 is a no-data value
 for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print`; do
     target=${tif%.*}.png
-    gdal_translate -scale -oT Byte -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
+    #special case of amplitude image
+    fname=`basename $tif`
+    isamp=`echo $fname | grep "amp.*\.tif"`
+    scaleopt=""
+    if [ -n "${isamp}" ]; then
+	#get min and max values passed to -scale option of gdal_translate
+	image_equalize_range "${tif}" scalemin scalemax
+	status=$?
+	[ $status -eq 0 ] && {
+	    scaleopt="${scalemin} $scalemax 0 255"
+	}
+    fi
+    gdal_translate -scale $scaleopt -oT Byte -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
     #convert the world file to pngw extension
     wld=${target%.*}.wld
     pngw=${target%.*}.pngw
