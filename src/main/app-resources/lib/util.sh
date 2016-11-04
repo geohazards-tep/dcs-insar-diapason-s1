@@ -655,3 +655,63 @@ if [ $status -ne 0 ]; then
 fi
 
 }
+
+# get suitable minimum and maximum image
+# values for histogram stretching
+# arguments:
+# input image
+# variable used to store minimum value
+# variable used to store maximum value
+# return 0 if successful , non-zero otherwise
+function image_equalize_range()
+{
+    if [ $# -lt 1 ]; then
+	return 255
+    fi 
+
+    #check gdalinfo is available
+    if [ -z "`type -p gdalinfo`" ]; then
+	return 1
+    fi
+
+    local image="$1"
+
+    
+    declare -A Stats
+    
+    #load the statistics information from gdalinfo into an associative array
+    while read data ; do
+	string=$(echo ${data} | awk '{print "Stats[\""$1"\"]=\""$2"\""}')
+	eval "$string"
+    done < <(gdalinfo -hist "${image}"   | grep STATISTICS | sed 's@STATISTICS_@@g;s@=@ @g')
+
+    #check that we have mean and standard deviation
+    local mean=${Stats["MEAN"]}
+    local stddev=${Stats["STDDEV"]}
+    local datamin=${Stats["MINIMUM"]}
+
+    if [ -z "$mean"   ] || [ -z "${stddev}" ] || [ -z "${datamin}" ]; then
+	return 1
+    fi 
+    
+   
+    local min=`echo $mean - 3*${stddev} | bc -l`
+    local max=`echo $mean + 3*${stddev} | bc -l`
+    
+    local below_zero=`echo "$min < $datamin" | bc -l`
+    
+    [ ${below_zero} -gt 0 ] && {
+	min=$datamin
+    }
+    
+    if [ $# -ge 2 ]; then
+	eval "$2=${min}"
+    fi
+
+    if [ $# -ge 3 ]; then
+	eval "$3=${max}"
+    fi
+
+   
+    return 0
+}
