@@ -46,7 +46,7 @@
     <node id="node_swath">
       <job id="aux_swath"/>
       <sources>
-	<source scope="runtime" id="master" title="Sentinel-1 IW master" abstract="Define the InSAR Master product" refid="string:list"></source>
+	<source scope="runtime" id="master" title="Sentinel-1 IW master" abstract="Define the InSAR Master product" refid="string:list" maxOccurs="1"></source>
       </sources>
       <parameters>
       <parameter id="slave" scope="runtime"></parameter>
