@@ -41,7 +41,19 @@ function procCleanup()
 
 }
 
-
+function node_cleanup()
+{
+    if [  $# -lt 1 ]; then
+	return ${ERRGENERIC}
+    fi
+    local wkfid="$1"
+    local nodelist="node_swath node_burst node_coreg node_interf"
+    for node in $nodelist ; do
+	for d in `ciop-browseresults -r "${wkfid}" -j ${node}`; do
+	    hadoop dfs -rmr $d > /dev/null 2<&1
+	done
+    done
+}
 
 function product_name_parse()
 {
