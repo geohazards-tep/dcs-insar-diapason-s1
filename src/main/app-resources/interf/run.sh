@@ -172,7 +172,7 @@ function deburst_swath()
     for r in `ciop-browseresults -r ${wkid}  -j node_burst | grep "SW${swath}_BURST_[0-9]*" | sort -n`; do
 	hadoop dfs -copyToLocal "$r" "${procdir}"
 
-	status=$?
+	local status=$?
 
 	if [ $status -ne 0 ]; then
 	    ciop-log "ERROR" "Failed to import $r to local storage"
@@ -244,8 +244,21 @@ function deburst_swath()
     
 #debursting
     tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar --geosarout=${deburstdir}/DAT/GEOSAR/${master}.geosar --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${masterlist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${master}_sw${swath}.log 2<&1
+    local msstatus=$?
+
+    [ $msstatus -ne 0 ] && {
+	ciop-log "ERROR" "Debursting for swath $swath orbit ${master} failed"
+	return $msstatus
+    }
 
     tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar  --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${slavelist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${slave}_sw${swath}.log 2<&1
+
+    local slstatus=$?
+    
+    [ $slstatus -ne 0 ] && {
+	ciop-log "ERROR" "Debursting for swath $swath orbit ${slave} failed"
+	return $slstatus
+    }
 
 #swath level interf
     slavegeo=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${slave}.geosar
@@ -424,7 +437,7 @@ ciop-publish -m "${mergedir}"/DIF_INT/*.png
 ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
 
 
-return 0
+return ${SUCCESS}
 
 }
 
@@ -519,6 +532,11 @@ for swath in ${swath_list} ; do
 deburst_swath "${master}" "${slave}" ${swath} "${serverdir}" "${localdem}"
 status=$?
 ciop-log "INFO" "swath interf $status"
+[ $status -ne $SUCCESS ] && {
+    procCleanup
+    node_cleanup "${_WF_ID}"
+    exit ${ERRGENERIC}
+}
 
 done
 
