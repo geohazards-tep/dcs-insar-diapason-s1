@@ -390,7 +390,15 @@ ciop-log "INFO" "Slave  image : "${inputs[2]}
 
 main inputs[@]  || {
     ciop-log "ERROR" "processing of inputs failed. status $?"
-    continue
+    #delete intermediary results 
+    nodelist="node_swath node_burst node_coreg node_interf"
+    local wkid_=${_WF_ID}
+    for node in $nodelist ; do
+	for d in `ciop-browseresults -r "${wkid_}" -j ${node}`; do
+	    hadoop dfs -rmr $d > /dev/null 2<&1
+	done
+    done
+    exit ${ERRGENERIC}
 }
 
 
