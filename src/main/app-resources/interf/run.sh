@@ -128,7 +128,7 @@ function merge_dems()
 
     local outdem=${outdir}/dem_merged.tif
 
-    local mergecmd="gdalwarp -ot Int16 -r bilinear ${flist} ${outdem}"
+    local mergecmd="gdalwarp -tr 0.000416666666500 -0.000416666666500  -ot Int16 -r bilinear ${flist} ${outdem}"
     
     eval "${mergecmd}"
     
@@ -326,14 +326,14 @@ sw=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
 #create interferogram
 local psfiltopt=""
 [ -n "${psfiltx}" ] && psfiltopt="--psfiltx=${psfiltx}"
-interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --mlaz=${mlaz} --mlran=${mlran} --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf_sw${sw}.log 2<&1
+interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --winazi=${mlaz} --winran=${mlran}  --mlaz=1 --mlran=1 --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf_sw${sw}.log 2<&1
 
 #create geotiff results
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${mlaz}${mlran}_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
 
 
 #crop output geotiffs if aoi is set
@@ -401,15 +401,17 @@ for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print`; do
     fname=`basename $tif`
     isamp=`echo $fname | grep "amp.*\.tif"`
     scaleopt=""
+    pxtp="Byte"
     if [ -n "${isamp}" ]; then
 	#get min and max values passed to -scale option of gdal_translate
 	image_equalize_range "${tif}" scalemin scalemax
 	status=$?
 	[ $status -eq 0 ] && {
-	    scaleopt="${scalemin} $scalemax 0 255"
+	    scaleopt="${scalemin} $scalemax 0 65535"
 	}
+	pxtp=UInt16
     fi
-    gdal_translate -scale $scaleopt -oT Byte -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
+    gdal_translate -scale $scaleopt -oT $pxtp -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
     #convert the world file to pngw extension
     wld=${target%.*}.wld
     pngw=${target%.*}.pngw
@@ -420,6 +422,12 @@ done
 if [ -n "`type -p convert`" ]; then
     phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | head -1`
     [ -n "$phase" ] && convert -alpha activate "${phase}" "${phase%.*}.png"
+    amp=`ls ${mergedir}/DIF_INT/*amp*.tiff* | head -1`
+    [ -n "${amp}" ] && {
+	gdal_translate -oT UInt16 "${amp}" "${amp%.*}_temp.tif"
+	#convert -auto-gamma -equalize -despeckle "${amp%.*}_temp.tif" "${amp%.*}_gamma.png"
+	#cp "${amp%.*}.pngw" "${amp%.*}_gamma.pngw" 
+    }
 fi
 
 #create properties files for each geotiff
