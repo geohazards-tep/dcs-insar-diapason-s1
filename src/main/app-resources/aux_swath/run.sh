@@ -172,6 +172,14 @@ fi
   refmaster=`basename ${master_safe}`
   refslave=`basename ${slave_safe}`
 
+#save products names
+  masterid=${datadir}/masterid.txt
+  echo "$refmaster" > ${masterid}
+  slaveid=${datadir}/slaveid.txt
+  echo "$refslave" > ${slaveid}
+  ciop-publish -a "${masterid}"
+  ciop-publish -a "${slaveid}"
+
 #pass inputs as well as swath number to next node
 for swath in `seq 1 ${nswaths}`; do
     echo "$refmaster@${swath}@$refslave@${swath}@$pol" | ciop-publish -s
