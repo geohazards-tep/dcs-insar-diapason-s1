@@ -376,12 +376,27 @@ function create_interf_properties()
     if [ $# -ge 5 ]; then
     geosars=$5
     fi
+    
+    local datestart=$(geosar_time "${geosarm}")
+    
+    local dateend=""
+    if [ -n "$geosars" ]; then
+	dateend=$(geosar_time "${geosars}")
+    fi
 
     local propfile="${inputfile}.properties"
-    echo "title = ${fbase}" > "${propfile}"
+    echo "title = DIAPASON InSAR Sentinel-1 TOPSAR(IW,EW) - ${description} - ${datestart} ${dateend}" > "${propfile}"
     echo "Description = ${description}" >> "${propfile}"
     local sensor=`grep -h "SENSOR NAME" "${geosarm}" | cut -b 40-1024 | awk '{print $1}'`
     echo "Sensor\ Name = ${sensor}" >> "${propfile}"
+    local masterid=`head -1 ${serverdir}/masterid.txt`
+    if [ -n "${masterid}" ]; then
+	echo "Master\ SLC\ Product = ${masterid}" >> "${propfile}"
+    fi 
+    local slaveid=`head -1 ${serverdir}/slaveid.txt`
+    if [ -n "${slaveid}" ]; then
+	echo "Slave\ SLC\ Product = ${slaveid}" >> "${propfile}"
+    fi 
 
     #look for 2jd utility to convert julian dates
     if [ -n "`type -p j2d`"  ] && [ -n "${geosars}" ]; then
@@ -399,6 +414,15 @@ function create_interf_properties()
 	   
 	fi
 	echo "Observation\ Dates = $dates" >> "${propfile}"
+	
+	local timeseparation=`echo "$jul1 - $jul2" | bc -l`
+	if [ $timeseparation -lt 0 ]; then
+	    timeseparation=`echo "$timeseparation*-1" | bc -l`
+	fi
+	
+	if [ -n "$timeseparation" ]; then
+	    echo "Time\ Separation\ \(days\) = ${timeseparation}" >> "${propfile}"
+	fi
     fi
 
     local altambig="${serverdir}/DAT/AMBIG.dat"
@@ -416,11 +440,23 @@ function create_interf_properties()
     else
 	ciop-log "INFO" "Missing AMBIG.DAT file in ${serverdir}/DAT"
     fi 
+    
+    local satpass=`grep -h "SATELLITE PASS" "${geosarm}"  | cut -b 40-1024 | awk '{print $1}'`
+    
+    if [ -n "${satpass}" ]; then
+	echo "Orbit\ Direction = ${satpass}" >> "${propfile}"
+    fi
 
     local publishdate=`date +'%B %d %Y' `
-    echo "Published = ${publishdate}" >> "${propfile}"
+    echo "Processing\ Date  = ${publishdate}" >> "${propfile}"
     
-
+    local logfile=`ls ${serverdir}/ortho_amp.log`
+    if [ -e "${logfile}" ]; then
+	local resolution=`grep "du mnt" "${logfile}" | cut -b 15-1024 | sed 's@[^0-9\.]@\n@g' | grep [0-9] | sort -n | tail -1`
+	if [ -n "${resolution}" ]; then
+	    echo "Resolution\ \(meters\) = ${resolution}" >> "${propfile}"
+	fi
+    fi
 }
 
 
@@ -725,5 +761,32 @@ function image_equalize_range()
     fi
 
    
+    return 0
+}
+
+function geosar_time()
+{
+    if [ $# -lt 1 ]; then
+	return $ERRMISSING
+    fi
+    local geosar="$1"
+    
+    local date=$(/usr/bin/perl <<EOF
+use POSIX;
+use strict;
+use esaTime;
+use geosar;
+
+my \$geosar=geosar->new(FILE=>'$geosar');
+my \$time=\$geosar->startTime();
+print \$time->xgr;
+EOF
+)
+
+    [ -z "$date" ] && {
+	return $ERRMISSING
+    }
+
+    echo $date
     return 0
 }
