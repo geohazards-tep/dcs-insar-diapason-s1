@@ -250,6 +250,8 @@ function deburst_swath()
 	ciop-log "ERROR" "Debursting for swath $swath orbit ${master} failed"
 	return $msstatus
     }
+    
+    grep "ci2" "${masterlist}" | xargs rm >> ${deburstdir}/log/deburst_${master}_sw${swath}.log 2<&1
 
     tops_deburst.pl --geosarin=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${master}.geosar  --exedir="${EXE_DIR}" --outdir="${deburstdir}/SLC_CI2/" --list=${slavelist} --tmpdir="${procdir}/TEMP" > ${deburstdir}/log/deburst_${slave}_sw${swath}.log 2<&1
 
@@ -259,6 +261,8 @@ function deburst_swath()
 	ciop-log "ERROR" "Debursting for swath $swath orbit ${slave} failed"
 	return $slstatus
     }
+    
+    grep "cr4" "${slavelist}" | xargs rm >> ${deburstdir}/log/deburst_${slave}_sw${swath}.log 2<&1
 
 #swath level interf
     slavegeo=${procdir}/SW${swath}_BURST_${masterburst}/DAT/GEOSAR/${slave}.geosar
@@ -311,6 +315,12 @@ function merge_swaths()
 	diapconv.pl --mode=copy --type=ci2 --infile="${procdir}/SW${sw_}_DEBURST/SLC_CI2/geo_${slave}_${master}_RERAMP.cr4" --outfile="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" > "${mergedir}"/merge_${slave}.log 2<&1
     fi
     
+    #after merge remove debursted slc data
+    local sw=""
+    for sw in $swathlist; do
+	find "${procdir}/SW${sw}_DEBURST" -o -name "*.cr4" -print -o -iname "*.ci2" -print | xargs rm > /dev/null 2<&1 
+    done
+
 mkdir -p ${mergedir}/DIF_INT
 
 #fix geosar
@@ -326,7 +336,15 @@ sw=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
 #create interferogram
 local psfiltopt=""
 [ -n "${psfiltx}" ] && psfiltopt="--psfiltx=${psfiltx}"
-interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --winazi=${mlaz} --winran=${mlran}  --mlaz=1 --mlran=1 --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf_sw${sw}.log 2<&1
+
+#interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --winazi=1 --winran=1  --mlaz=1 --mlran=1 --dir="${mergedir}/DIF_INT" --amp --nocoh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf_sw${sw}.log 2<&1
+
+
+interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --winazi=${mlaz} --winran=${mlran}  --mlaz=1 --mlran=1 --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   >> "${mergedir}"/interf_sw${sw}.log 2<&1
+
+rm -f "${mergedir}/DIF_INT/amp*ortho*"
+
+ortho.pl --geosar=${mergedir}/${master}.geosar --in="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11.r4" --demdesc="${demmerge}" --tag="amp_${master}_${slave}_ml11" --odir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}"  >> "${mergedir}"/ortho_amp.log 2<&1
 
 #create geotiff results
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
@@ -358,6 +376,18 @@ fi
 	mv "${target}" "${geotiff}"
     done
 }
+
+#copy master and slave id
+local masteridfile=`ciop-browseresults -r "${wkid}" -j node_swath | grep -i masterid | grep -i txt | head -1`
+if [ -n "${masteridfile}" ]; then
+    hadoop dfs -copyToLocal "${masteridfile}" "${mergedir}"
+fi
+
+local slaveidfile=`ciop-browseresults -r "${wkid}" -j node_swath | grep -i slaveid | grep -i txt | head -1`
+if [ -n "${masteridfile}" ]; then
+    hadoop dfs -copyToLocal "${slaveidfile}" "${mergedir}"
+fi
+
 
 #run alt_ambig
 mkdir -p "${mergedir}/DAT/"
@@ -493,6 +523,10 @@ fi
 if [ $count -gt 0 ]; then
     break
 fi
+
+for file in `ciop-browseresults -r "${_WF_ID}" -j node_swath | grep -i SAFE`; do
+    hadoop dfs -rmr $file > /dev/null 2<&1
+done
 
 inputs=($(echo "$data" | tr "@" "\n") )
 
