@@ -174,9 +174,9 @@ fi
 
 #save products names
   masterid=${datadir}/masterid.txt
-  echo "$refmaster" > ${masterid}
+  opensearch-client -f atom "${masterref}" identifier > ${masterid}
   slaveid=${datadir}/slaveid.txt
-  echo "$refslave" > ${slaveid}
+  opensearch-client -f atom "${slaveref}" identifier > ${slaveid}
   ciop-publish -a "${masterid}"
   ciop-publish -a "${slaveid}"
 
