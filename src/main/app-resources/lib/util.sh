@@ -457,6 +457,13 @@ function create_interf_properties()
 	    echo "Resolution\ \(meters\) = ${resolution}" >> "${propfile}"
 	fi
     fi
+    
+    local wktfile="${serverdir}/wkt.txt"
+    
+    if [ -e "${wktfile}" ]; then
+	local wkt=`head -1 "${wktfile}"`
+	echo "geometry = ${wkt}" >> "${propfile}"
+    fi
 }
 
 
@@ -788,5 +795,34 @@ EOF
     }
 
     echo $date
+    return 0
+}
+
+
+function tiff2wkt(){
+    
+    if [ $# -lt 1 ]; then
+	echo "Usage $0 geotiff"
+	return $ERRMISSING
+    fi
+    
+    tiff="$1"
+    
+    declare -a upper_left
+    upper_left=(`gdalinfo $tiff | grep "Upper Left" | sed 's@[,)(]@ @g' | awk '{print $3" "$4}'`)
+    
+    
+    declare -a lower_left
+    lower_left=(`gdalinfo $tiff | grep "Lower Left" | sed 's@[,)(]@ @g' | awk '{print $3" "$4}'`)
+
+    declare -a lower_right
+    lower_right=(`gdalinfo $tiff | grep "Lower Right" | sed 's@[,)(]@ @g' | awk '{print $3" "$4}'`)
+    
+    
+    declare -a upper_right
+    upper_right=(`gdalinfo $tiff | grep "Upper Right" | sed 's@[,)(]@ @g' | awk '{print $3" "$4}'`)
+    
+    echo "POLYGON((${upper_left[0]} ${upper_left[1]} , ${lower_left[0]} ${lower_left[1]},  ${lower_right[0]} ${lower_right[1]} , ${upper_right[0]} ${upper_right[1]}, ${upper_left[0]} ${upper_left[1]}))"
+   
     return 0
 }
