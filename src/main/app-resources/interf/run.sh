@@ -403,15 +403,18 @@ if [ ! -e "${ambigdat}" ]; then
 fi
 
 #create properties files for each geotiff
-create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.tiff | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+#create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.tiff | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
-create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.tiff | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+#create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.tiff | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
-create_interf_properties "`ls ${mergedir}/DIF_INT/coh*.tiff | head -1`" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+#create_interf_properties "`ls ${mergedir}/DIF_INT/coh*.tiff | head -1`" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
+wkt=$(tiff2wkt "`ls ${mergedir}/DIF_INT/pha*.tiff | head -1`")
+
+echo "${wkt}" > ${mergedir}/wkt.txt
 
 #publish results
-ciop-publish -m "${mergedir}/DIF_INT/*.tiff" 
+#ciop-publish -m "${mergedir}/DIF_INT/*.tiff" 
 mkdir -p ${procdir}/log 2>/dev/null
 
 find ${procdir} -iname "*.log" -exec cp '{}' ${procdir}/log  \;
@@ -441,7 +444,7 @@ for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print`; do
 	}
 	pxtp=UInt16
     fi
-    gdal_translate -scale $scaleopt -oT $pxtp -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
+    gdal_translate -scale ${scaleopt} -oT $pxtp -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
     #convert the world file to pngw extension
     wld=${target%.*}.wld
     pngw=${target%.*}.pngw
@@ -472,7 +475,7 @@ ciop-publish -m "${mergedir}/DIF_INT/*.properties"
 
 #publish png and their pngw files
 ciop-publish -m "${mergedir}"/DIF_INT/*.png
-ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
+#ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
 
 
 return ${SUCCESS}
