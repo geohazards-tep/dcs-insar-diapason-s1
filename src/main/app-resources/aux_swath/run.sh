@@ -42,10 +42,24 @@ function extract_safe() {
       measurlist=$( unzip -l "${safe_archive}" | grep measurement | grep .tiff | awk '{ print $4 }' )
   fi
 
+  #check for empty measurement and annotation lists
+  if [ -z "${measurlist}" ]; then
+      ciop-log "ERROR" "file ${safe_archive} contains no measurement files"
+      return ${ERRINVALID}
+  fi
+  
+  if [ -z "${annotlist}" ]; then
+      ciop-log "ERROR" "file ${safe_archive} contains no annotation files"
+      return ${ERRINVALID}
+  fi
+  
+
+
   for annotation in $annotlist
   do
      unzip -o -j ${safe_archive} "${annotation}" -d "${safe}/annotation" 1>&2
      res=$?
+     ciop-log "INFO" "unzip ${annotation} : status $res"
      [ "${res}" != "0" ] && return ${res}
   done
   ciop-log "INFO" "Unzipped $( ls -l ${safe}/annotation )"
@@ -53,6 +67,7 @@ function extract_safe() {
   do
     unzip -o -j ${safe_archive} "${measurement}" -d "${safe}/measurement" 1>&2
     res=$?
+    ciop-log "INFO" "unzip ${measurement} : status $res"
     [ "${res}" != "0" ] && return ${res}    
   done
   echo ${safe}
@@ -155,7 +170,7 @@ case $mode in
 esac
 
 if [ $nswaths -eq 0 ]; then
-    ciop-log "ERROR : master image invalid mode ${mode}"
+    ciop-log "ERROR"  "master image invalid mode ${mode}"
     exit ${ERRINVALID}
 fi
 
@@ -163,12 +178,16 @@ fi
 
   ciop-log "INFO" "Extracting master"
   master_safe=$( extract_safe ${master} ${datadir}/data/master )
-  [ "$?" != "0" ] && return ${ERR_EXTRACT}
-
+  [ "$?" != "0" ] && { 
+      ciop-log "ERROR" "Error extracting ${master}"
+      return ${ERRGENERIC}
+}
   ciop-log "INFO" "Extracting slave"
   slave_safe=$( extract_safe ${slave} ${datadir}/data/slave )
-  [ "$?" != "0" ] && return $ERR_EXTRACT
-
+  [ "$?" != "0" ] && { 
+      ciop-log "ERROR" "Error extracting ${slave}"
+      return ${ERRGENERIC}
+}
   refmaster=`basename ${master_safe}`
   refslave=`basename ${slave_safe}`
 
