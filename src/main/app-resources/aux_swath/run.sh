@@ -206,6 +206,7 @@ do
     mkdir -p ${serverdir}/download/master
     mkdir -p ${serverdir}/download/slave
     main ${pair}
+    res=$?
     [ "${res}" != "0" ] && {
 	procCleanup
 	exit ${res}
