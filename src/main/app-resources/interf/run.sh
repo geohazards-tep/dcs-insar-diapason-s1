@@ -106,8 +106,8 @@ function merge_dems()
     fi
     
     if [ -z "`type -p gdalwarp`" ]; then
-	#ciop-log "ERROR" "gdalwarp utility not available"
-	return 2
+	ciop-log "ERROR" "gdalwarp utility not available"
+	return ${ERRMISSING}
     fi
     
     local outdir=$1
@@ -116,14 +116,21 @@ function merge_dems()
     #look for the dems to merge in geotiff
     for dem in `ciop-browseresults -r ${wkid}  -j node_burst | grep -i dem | grep -i tif`; do
 	hadoop dfs -copyToLocal "$dem" "${outdir}"
+	local stcopy=$?
+	
+	if [ $stcopy -ne 0 ]; then
+	    ciop-log "ERROR" "Failed command: hadoop dfs -copyToLocal $dem"
+	    return $ERRSTGIN
+	fi
+
 	flist="${flist} ${outdir}/`basename $dem`"
     done
     
     declare -a arrdem=(`echo $flist`)
     
     if [ ${#arrdem[@]} -le 0 ]; then
-	#ciop-log "ERROR" "input dem missing"
-	return 3
+	ciop-log "ERROR" "input dem missing"
+	return ${ERRMISSING}
     fi
 
     local outdem=${outdir}/dem_merged.tif
