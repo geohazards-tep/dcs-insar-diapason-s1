@@ -70,6 +70,19 @@ function extract_safe() {
     ciop-log "INFO" "unzip ${measurement} : status $res"
     [ "${res}" != "0" ] && return ${res}    
   done
+  
+  if [ -n "`type -p gdalinfo`" ]; then
+      #check the tiff files with gdalinfo
+      local tif
+      for tif in `find ${safe} -name *.tiff -print -o -name "*.tif" -print`; do
+	  gdalinfo "${tif}" > /dev/null 2<&1
+	  res=$?
+	  [ "${res}" != "0" ] && {
+	      ciop-log "INFO" "tiff file ${tif} is invalid . gdalinfo status $res"
+	  }
+      done
+  fi
+
   echo ${safe}
   
 }
