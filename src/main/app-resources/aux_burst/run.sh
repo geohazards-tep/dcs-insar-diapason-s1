@@ -62,7 +62,8 @@ function main()
     
     if [ -z "${pubmaster}" ]; then
 	ciop-log "ERROR" "Failed to locate master safe"
-	return $ERRMISSING
+	procCleanup
+	exit $ERRMISSING
     fi
 
     hadoop dfs -copyToLocal "${pubmaster}" "${serverdir}/CD" 
@@ -70,7 +71,7 @@ function main()
     if [ "$statmaster" != "0" ]; then
 	ciop-log "ERROR" "Failed to stage in ${inputdata[0]}"
 	procCleanup
-	return ${ERRSTGIN}
+	exit ${ERRSTGIN}
     fi
     local master="${serverdir}/CD/${inputdata[0]}"
     
@@ -84,7 +85,8 @@ function main()
     
     if [ -z "${pubslave}" ]; then
 	ciop-log "ERROR" "Failed to locate slave safe"
-	return $ERRMISSING
+	procCleanup
+	exit $ERRMISSING
     fi
     
     hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
@@ -93,7 +95,7 @@ function main()
     if [ "$statslave" != "0" ]; then
 	ciop-log "ERRROR" "Failed to stage in ${inputdata[2]}"
 	procCleanup
-	return ${ERRSTGIN}
+	exit ${ERRSTGIN}
     fi
     
     local slave="${serverdir}/CD/${inputdata[2]}"
@@ -114,7 +116,7 @@ function main()
         msg=`cat "${serverdir}"/log/extract_master.log`
         ciop-log "ERROR : ${msg}"
         procCleanup
-        return ${ERRGENERIC}
+        exit ${ERRGENERIC}
     fi
     
     #get polarization
@@ -124,7 +126,7 @@ function main()
         msg=`cat "${serverdir}"/log/extract_master.log`
         ciop-log "ERROR : ${msg}"
         procCleanup
-        return ${ERRGENERIC}
+        exit ${ERRGENERIC}
     fi
     
     ciop-log "INFO" "exctracted master orbit ${orbitmaster} pol ${pol}"
@@ -140,7 +142,7 @@ function main()
 	msg=`cat "${serverdir}"/log/extract_slave.log`
 	ciop-log "ERROR : ${msg}"
 	procCleanup
-	return  ${ERRGENERIC}
+	exit  ${ERRGENERIC}
     fi
     
     orbitslave=`ls -tra "${serverdir}/DAT/GEOSAR/"*.geosar | tail -1 | xargs grep -ih "ORBIT NUMBER" | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
@@ -150,7 +152,7 @@ function main()
         msg=`cat "${serverdir}"/log/extract_slave.log`
         ciop-log "ERROR : ${msg}"
         procCleanup
-        return ${ERRGENERIC}
+        exit ${ERRGENERIC}
     fi
  
     ciop-log "INFO" "exctracted slave orbit ${orbitslave} pol ${pol}"
@@ -160,6 +162,9 @@ function main()
 	#no DEM exit
 	procCleanup
 	ciop-log "ERROR" "dem download fail"
+	local demmissingflag=${serverdir}/TEMP/demmissing_sw${swathmaster}.txt
+	touch "${demmissingflag}" || exit ${ERRGENERIC}
+	ciop-publish -a "${demmissingflag}" || exit ${ERRGENERIC}
 	return ${ERRGENERIC}
     }
 
@@ -183,7 +188,7 @@ function main()
     if [ $status -ne 0 ]; then
 	procCleanup
 	ciop-log "ERROR" "unable to publish dem ,status :  $status"
-	return ${ERRGENERIC}
+	exit ${ERRGENERIC}
     fi 
     
     local BURSTSTART=""
@@ -250,13 +255,13 @@ function main()
     if [ -z "${esddir}" ]; then
 	ciop-log "ERROR" "Cannot create processing directory"
 	procCleanup
-	return ${ERRGENERIC}
+	exit ${ERRGENERIC}
     fi
 
     mkdir -p ${esddir}/{CD,DEM,DAT} || {
 	ciop-log "ERROR" "Cannot create processing directory"
 	procCleanup
-	return ${ERRGENERIC}
+	exit ${ERRGENERIC}
 }
 
     #move the extracted products to the CD subdirectory
@@ -277,7 +282,7 @@ function main()
 	msg=`cat "${esddir}/DEM/demimport.log"`
 	ciop-log "INFO" "${msg}"
 	procCleanup
-	return ${ERRGENERIC}
+	exit ${ERRGENERIC}
     fi
 
     #define environment
@@ -331,14 +336,14 @@ function main()
 	cp ${esddir}/*.log /tmp
 	cp ${esddir}/*.dat /tmp
 	procCleanup
-	return ${ERRGENERIC}
+	exit ${ERRGENERIC}
     fi
     
     
-
+    
     #look for the processing directories to publish to next node
     burstmaster=${BURSTSTART}
-
+    
     #for every burst
     for burst in `seq 0 $((nbursts-1))`; do
 	local procburstdir="${esddir}/SW_${swathmaster}_POL_${POL}_BURST_${burstmaster}"
@@ -357,7 +362,12 @@ function main()
 	procburstdir=${esddir}/SW${swathmaster}_BURST_${burstmaster}
 	#publish to next node
 	ciop-publish "${procburstdir}" -r -a
-
+	local pubstatus=$?
+	if [ ${pubstatus} -ne 0 ]; then
+	    ciop-log "ERROR" "Failed to publish directory for burst ${burst} swath ${swathmaster}:$pubstatus"
+	    procCleanup
+	    exit ${ERRGENERIC}
+	fi
 	let "burstmaster += 1"
     done
 
