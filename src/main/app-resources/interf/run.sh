@@ -1,6 +1,7 @@
 #!/bin/bash
 
 
+
 #source the ciop functions
 source ${ciop_job_include}
 
@@ -463,11 +464,6 @@ if [ -n "`type -p convert`" ]; then
     phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | head -1`
     [ -n "$phase" ] && convert -alpha activate "${phase}" "${phase%.*}.png"
     amp=`ls ${mergedir}/DIF_INT/*amp*.tiff* | head -1`
-    [ -n "${amp}" ] && {
-	gdal_translate -oT UInt16 "${amp}" "${amp%.*}_temp.tif"
-	#convert -auto-gamma -equalize -despeckle "${amp%.*}_temp.tif" "${amp%.*}_gamma.png"
-	#cp "${amp%.*}.pngw" "${amp%.*}_gamma.pngw" 
-    }
 fi
 
 #create properties files for each geotiff
@@ -483,6 +479,101 @@ ciop-publish -m "${mergedir}/DIF_INT/*.properties"
 #publish png and their pngw files
 ciop-publish -m "${mergedir}"/DIF_INT/*.png
 #ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
+
+#unwrap
+if [ "${unwrap}" == "true"  ]; then
+    ciop-log "INFO"  "Configuring phase unwrapping"
+    
+    unwmlaz=`echo "${mlaz}*4" | bc -l`
+    unwmlran=`echo "${mlran}*4" | bc -l`
+    
+    interf_sar.pl --master="${mergedir}/${master}.geosar" --slave="${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar" --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2"  --demdesc="${demmerge}" --outdir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}"  --mlaz="${unwmlaz}" --mlran="${unwmlran}" --amp --coh --bort --ran --inc  > "${mergedir}/interf_mlunw.log" 2<&1
+    
+    snaphucfg="/${mergedir}/snaphu_template.txt"
+    cp /opt/diapason/gep.dir/snaphu_template.txt "${snaphucfg}"
+    chmod 775 "${snaphucfg}"
+    
+#compute additionnal parameters passed to snaphu                                                                     
+    
+#BPERP                                                                                                               
+    bortfile=${mergedir}/DIF_INT/bort_${master}_${slave}_ml${unwmlaz}${unwmlran}.r4
+
+    bperp=`view_raster.pl --file="${bortfile}" --type=r4 --count=1000 | awk '{v = $1 ; avg += v ;} END { print avg/NR }'`
+    echo "BPERP ${bperp}" >> "${snaphucfg}"
+    
+    lnspc=`grep "LINE SPACING" "${mergedir}/${master}.geosar" | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
+    colspc=`grep "PIXEL SPACING RANGE" "${mergedir}/${master}.geosar" | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
+    mlslres=`echo "${colspc}*${unwmlran}"  | bc -l`
+    mlazres=`echo "${lnspc}*${unwmlaz}"  | bc -l`
+    
+    echo "RANGERES ${mlslres}" >> "${snaphucfg}"
+    echo "AZRES ${mlazres}" >> "${snaphucfg}"
+    
+    snaphutemp="${mergedir}/saphu_parm"
+    
+#now write the geosar inferred parameters                                                             
+    ${EXE_DIR}/dump_snaphu_params  >  "${snaphutemp}"   <<EOF  
+"${mergedir}/${master}.geosar"
+EOF
+    
+    grep [0-9] "${snaphutemp}" | grep -iv diapason >> "${snaphucfg}"
+    
+#unwrapped phase
+    unwpha="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}.r4"
+#amplitude
+    amp="${mergedir}/DIF_INT/amp_${master}_${slave}_ml${unwmlaz}${unwmlran}.r4"
+#coherence     
+    coh="${mergedir}/DIF_INT/coh_${master}_${slave}_ml${unwmlaz}${unwmlran}.byt"
+    
+    echo "OUTFILE ${unwpha}" >> "${snaphucfg}"
+    echo "AMPFILE ${amp}" >> "${snaphucfg}"
+    echo "CORRFILE ${coh}" >> "${snaphucfg}"
+    
+    export WDIR="${mergedir}/"
+
+#make a copy of the snaphu configuration as ad_unwrap.sh deletes the file
+    
+    cfgtemp="${mergedir}/snaphu_configuration.txt"
+    
+    cp "${snaphucfg}" "${cfgtemp}"
+    
+    unwrapinput="${mergedir}/DIF_INT/pha_${master}_${slave}_ml${unwmlaz}${unwmlran}.pha"
+    unwrapcmd="/opt/diapason/gep.dir/ad_unwrap.sh \"${cfgtemp}\" \"${unwrapinput}\""
+    
+    ciop-log "INFO"  "Running phase unwrapping"
+    cd ${mergedir}/
+    touch fcnts.sh
+    chmod 775 fcnts.sh
+    eval "${unwrapcmd}" > ${mergedir}/unwrap.log 2<&1
+    cd -
+    if [ -e "${unwpha}" ]; then
+	
+        #run ortho on unwrapped phase
+	ciop-log "INFO"  "Running Unwrapping results ortho-projection"
+	ortho.pl --geosar="${mergedir}/${master}.geosar" --real  --mlaz="${unwmlaz}" --mlran="${unwmlran}"  --odir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}" --tag="unw_${master}_${slave}_ml${unwmlaz}${unwmlran}" --in="${unwpha}" --demdesc="${demmerge}"   > "${mergedir}"/ortho_unw.log 2<&1
+	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad" --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --min=1 --max=255 --colortbl=BLUE-RED  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tif" >> "${mergedir}"/ortho_unw.log 2<&1
+	unwtif="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tif"
+	
+	[ -n "${unwtif}" ] &&  {
+	    [ ${#aoi[@]} -ge 4 ]   && {
+		target=${mergedir}/temp.tiff
+		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwtif}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
+		mv "${target}" "${unwtif}"	
+	    }
+	    convert -alpha activate "${unwtif}" "${unwtif%.*}.png"
+	}
+	
+	create_interf_properties "`ls ${mergedir}/DIF_INT/unw*.png | head -1`" "Unwrapped Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+	ciop-publish -m ${mergedir}/DIF_INT/unw*.png
+	ciop-publish -m ${mergedir}/DIF_INT/unw*.properties
+	
+    else
+	ciop-log "ERROR" "Phase unwrapping failed"
+	return ${ERRGENERIC}
+    fi
+    
+fi
+
 
 
 return ${SUCCESS}
@@ -521,6 +612,8 @@ count=0
 #export inputaoi=(`ciop-getparam aoi`)
 export nodecleanup=(`ciop-getparam cleanup`)
 export psfiltx=(`ciop-getparam psfiltx`)
+#unwrap option
+export unwrap=(`ciop-getparam unwrap`)
 
 while read data
 do
