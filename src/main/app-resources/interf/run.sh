@@ -361,7 +361,7 @@ ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.
 
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
 
-phagraysale="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho_grayscale.tiff"
+phagrayscale="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho_grayscale.tiff"
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad"   --demdesc="${demmerge}" --outfile="${phagrayscale}" >> "${mergedir}"/phagrayscale_ortho_sw${sw}.log 2<&1
 
 
@@ -561,7 +561,7 @@ EOF
 		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwtif}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
 		mv "${target}" "${unwtif}"	
 		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwgrayscale}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
-	
+		mv "${target}" "${unwgrayscale}"
 	    }
 	    convert -alpha activate "${unwtif}" "${unwtif%.*}.png"
 	}
