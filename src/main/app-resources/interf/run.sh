@@ -326,7 +326,7 @@ function merge_swaths()
     #after merge remove debursted slc data
     local sw=""
     for sw in $swathlist; do
-	find "${procdir}/SW${sw}_DEBURST" -o -name "*.cr4" -print -o -iname "*.ci2" -print | xargs rm > /dev/null 2<&1 
+	find "${procdir}/SW${sw}_DEBURST"  -name "*.cr4" -print -o -iname "*.ci2" -print | xargs rm > /dev/null 2<&1 
     done
 
 mkdir -p ${mergedir}/DIF_INT
@@ -360,6 +360,9 @@ ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
 
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
+
+phagraysale="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho_grayscale.tiff"
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad"   --demdesc="${demmerge}" --outfile="${phagrayscale}" >> "${mergedir}"/phagrayscale_ortho_sw${sw}.log 2<&1
 
 
 #crop output geotiffs if aoi is set
@@ -410,12 +413,6 @@ if [ ! -e "${ambigdat}" ]; then
     ciop-log "Info" "Missing AMBIG.dat file"
 fi
 
-#create properties files for each geotiff
-#create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.tiff | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
-
-#create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.tiff | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
-
-#create_interf_properties "`ls ${mergedir}/DIF_INT/coh*.tiff | head -1`" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
 wkt=$(tiff2wkt "`ls ${mergedir}/DIF_INT/pha*.tiff | head -1`")
 
@@ -461,12 +458,15 @@ done
 
 #convert the phase with imageMagick , which can deal with the alpha channel
 if [ -n "`type -p convert`" ]; then
-    phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | head -1`
+    phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | grep -v grayscale | head -1`
     [ -n "$phase" ] && convert -alpha activate "${phase}" "${phase%.*}.png"
     amp=`ls ${mergedir}/DIF_INT/*amp*.tiff* | head -1`
 fi
 
-#create properties files for each geotiff
+mv "${phagrayscale}" "${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff"
+
+
+#create properties files for each png
 create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.png | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
 create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.png | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
@@ -478,7 +478,6 @@ ciop-publish -m "${mergedir}/DIF_INT/*.properties"
 
 #publish png and their pngw files
 ciop-publish -m "${mergedir}"/DIF_INT/*.png
-#ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
 
 #unwrap
 if [ "${unwrap}" == "true"  ]; then
@@ -551,19 +550,27 @@ EOF
         #run ortho on unwrapped phase
 	ciop-log "INFO"  "Running Unwrapping results ortho-projection"
 	ortho.pl --geosar="${mergedir}/${master}.geosar" --real  --mlaz="${unwmlaz}" --mlran="${unwmlran}"  --odir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}" --tag="unw_${master}_${slave}_ml${unwmlaz}${unwmlran}" --in="${unwpha}" --demdesc="${demmerge}"   > "${mergedir}"/ortho_unw.log 2<&1
-	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad" --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --min=1 --max=255 --colortbl=BLUE-RED  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tif" >> "${mergedir}"/ortho_unw.log 2<&1
-	unwtif="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tif"
-	
+	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad" --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --min=1 --max=255 --colortbl=BLUE-RED  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tiff" >> "${mergedir}"/ortho_unw.log 2<&1
+	unwtif="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tiff"
+	unwgrayscale="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho_grayscale.tiff"
+	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad"   --demdesc="${demmerge}" --outfile="${unwgrayscale}" >> "${mergedir}"/ortho_unw_grayscale.log 2<&1
+
 	[ -n "${unwtif}" ] &&  {
 	    [ ${#aoi[@]} -ge 4 ]   && {
 		target=${mergedir}/temp.tiff
 		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwtif}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
 		mv "${target}" "${unwtif}"	
+		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwgrayscale}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
+	
 	    }
 	    convert -alpha activate "${unwtif}" "${unwtif%.*}.png"
 	}
 	
+	mv "${unwgrayscale}" "${unwtif}"
+	
+
 	create_interf_properties "`ls ${mergedir}/DIF_INT/unw*.png | head -1`" "Unwrapped Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+	
 	ciop-publish -m ${mergedir}/DIF_INT/unw*.png
 	ciop-publish -m ${mergedir}/DIF_INT/unw*.properties
 	
@@ -574,7 +581,17 @@ EOF
     
 fi
 
-
+#pack all the geotiff
+local tiffdir="${mergedir}/GEOTIFF"
+mkdir -p  "${tiffdir}"
+find ${mergedir}/DIF_INT/ -name "*.tiff" -exec mv '{}' ${tiffdir} \;
+cd ${tiffdir}
+prodzip=${tiffdir}/products.zip
+zip ${prodzip} *.tiff
+ciop-publish -m ${prodzip} || {
+    ciop-log "ERRORR" "Failed to publish products.zip"
+ }
+cd -
 
 return ${SUCCESS}
 
@@ -704,7 +721,7 @@ let "count += 1"
 [ "${nodecleanup}" == "true" ]  && {
     #delete intermediary results 
     nodelist="node_swath node_burst node_coreg node_interf"
-    local wkid_=${_WF_ID}
+    wkid_=${_WF_ID}
     for node in $nodelist ; do
 	for d in `ciop-browseresults -r "${wkid_}" -j ${node}`; do
 	    hadoop dfs -rmr $d > /dev/null 2<&1
