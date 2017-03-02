@@ -433,7 +433,7 @@ cd -
 #convert all the tif files to png so that the results can be seen on the GeoBrowser
 
 #first do the coherence and amplitude ,for which 0 is a no-data value
-for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print`; do
+for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print | grep -v grayscale`; do
     target=${tif%.*}.png
     #special case of amplitude image
     fname=`basename $tif`
