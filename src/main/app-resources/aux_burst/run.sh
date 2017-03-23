@@ -160,11 +160,11 @@ function main()
     #download dem
     get_DEM "${serverdir}"  || {
 	#no DEM exit
-	procCleanup
 	ciop-log "ERROR" "dem download fail"
 	local demmissingflag=${serverdir}/TEMP/demmissing_sw${swathmaster}.txt
 	touch "${demmissingflag}" || exit ${ERRGENERIC}
 	ciop-publish -a "${demmissingflag}" || exit ${ERRGENERIC}
+	procCleanup
 	return ${ERRGENERIC}
     }
 
