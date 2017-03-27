@@ -106,7 +106,7 @@ function main()
     local pol=${inputdata[4]}
     export POL="${pol}"
     #extract data 
-    extract_any.pl  --pol=${pol} --in="${master}" --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
+    extract_any.pl   --in="${master}" --serverdir="${serverdir}" --swath=${swathmaster} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" > ${serverdir}/log/extract_master.log 2<&1
     
     #get master orbit number
     local orbitmaster=`grep -ih "ORBIT NUMBER" "${serverdir}/DAT/GEOSAR/"*.geosar | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
@@ -133,7 +133,7 @@ function main()
 
     #extract the slave image
     export POL=${pol}
-    extract_any.pl --in="${slave}" --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP" --pol="${pol}"  > ${serverdir}/log/extract_slave.log 2<&1
+    extract_any.pl --in="${slave}" --serverdir="${serverdir}" --swath=${swathslave} --exedir="${EXE_DIR}" --tmpdir="${serverdir}/TEMP"   > ${serverdir}/log/extract_slave.log 2<&1
    
     local norbits=`ls ${serverdir}/ORB/*.orb | wc -l`
     
