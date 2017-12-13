@@ -114,6 +114,24 @@ function merge_dems()
     local outdir=$1
     local demlist=""
     local wkid=${_WF_ID}
+
+    local aoipath=`ciop-browseresults -r "${wkid}" -j node_burst | grep -i aoi | grep -i txt | head -1`
+    local inputaoi=""
+    local aoishape=""
+    if [ -n "${aoipath}" ]; then
+	hadoop dfs -copyToLocal "${aoipath}" "${outdir}"
+	local aoifile=${outdir}/`basename "${aoipath}"`
+	inputaoi=`grep -m 1 "[0-9]" ${aoifile}`
+    fi
+    
+    [ -n "$inputaoi" ] && aoi=(`echo "${inputaoi}" | sed 's@,@ @g'`)
+    
+    [ ${#aoi[@]} -ge 4 ]   && {
+	aoi2shp "$inputaoi" "${outdir}" "AOI"
+	aoishape="${outdir}/AOI.shp"
+    }
+
+
     #look for the dems to merge in geotiff
     for dem in `ciop-browseresults -r ${wkid}  -j node_burst | grep -i dem | grep -i tif`; do
 	hadoop dfs -copyToLocal "$dem" "${outdir}"
@@ -142,6 +160,21 @@ function merge_dems()
     
     local status=$?
     
+    if [ $status -eq 0 ]; then
+	local tmdem=${outdir}/dem_merged_cropped.tif
+	local gdalcropbin="/opt/gdalcrop/bin/gdalcrop"
+	if [ -e "${aoishape}" ] && [ -e "${gdalcropbin}" ]; then
+	    ${gdalcropbin} ${outdem} ${aoishape} ${tmdem}
+	    if [ -e "$tmdem" ]; then
+		mv ${tmdem} ${outdem}
+		chmod 777 ${outdem}
+		#delete aoi path
+		hadoop dfs -rm ${aoipath}
+		ciop-log "INFO" "Cropped dem to aoi"
+	    fi
+	fi
+    fi
+
     return $status
 }
 
@@ -355,38 +388,27 @@ rm -f "${mergedir}/DIF_INT/amp*ortho*"
 ortho.pl --geosar=${mergedir}/${master}.geosar --in="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11.r4" --demdesc="${demmerge}" --tag="amp_${master}_${slave}_ml11" --odir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}"  >> "${mergedir}"/ortho_amp.log 2<&1
 
 #create geotiff results
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --colortbl=BLACK-WHITE --min=1 --max=255  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --mask  --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --colortbl=BLACK-WHITE   --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
 
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
 
 phagrayscale="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho_grayscale.tiff"
 ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad"   --demdesc="${demmerge}" --outfile="${phagrayscale}" >> "${mergedir}"/phagrayscale_ortho_sw${sw}.log 2<&1
 
+ampgrayscale="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho_grayscale.tiff"
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${ampgrayscale}" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
+
+cohgrayscale="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho_grayscale.tiff"
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${cohgrayscale}" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
+
+
 
 #crop output geotiffs if aoi is set
 declare -a aoi
 #look for an aoi file
 local wkid=${_WF_ID}
-local aoipath=`ciop-browseresults -r "${wkid}" -j node_burst | grep -i aoi | grep -i txt | head -1`
-local inputaoi=""
-if [ -n "${aoipath}" ]; then
-    hadoop dfs -copyToLocal "${aoipath}" "${mergedir}"
-    local aoifile=${mergedir}/`basename "${aoipath}"`
-    inputaoi=`grep -m 1 "[0-9]" ${aoifile}`
-fi
-
-[ -n "$inputaoi" ] && aoi=(`echo "${inputaoi}" | sed 's@,@ @g'`)
-
-[ ${#aoi[@]} -ge 4 ]   && {
-
-    for geotiff in `find "${mergedir}/DIF_INT" -iname "*.tiff" -print -o -iname "*.tif" -print`;do
-	target=${mergedir}/temp.tiff
-	gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${geotiff}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
-	mv "${target}" "${geotiff}"
-    done
-}
 
 #copy master and slave id
 local masteridfile=`ciop-browseresults -r "${wkid}" -j node_swath | grep -i masterid | grep -i txt | head -1`
@@ -440,30 +462,26 @@ for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print | grep -v grayscale`; do
     isamp=`echo $fname | grep "amp.*\.tif"`
     scaleopt=""
     pxtp="Byte"
-    if [ -n "${isamp}" ]; then
+ #   if [ -n "${isamp}" ]; then
 	#get min and max values passed to -scale option of gdal_translate
-	image_equalize_range "${tif}" scalemin scalemax
-	status=$?
-	[ $status -eq 0 ] && {
-	    scaleopt="${scalemin} $scalemax 0 65535"
-	}
-	pxtp=UInt16
-    fi
-    gdal_translate -scale ${scaleopt} -oT $pxtp -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
+#	image_equalize_range "${tif}" scalemin scalemax
+#	status=$?
+#	[ $status -eq 0 ] && {
+#	    scaleopt="${scalemin} $scalemax 0 65535"
+	#}
+	#pxtp=UInt16
+    #fi
+    gdal_translate  ${scaleopt} -oT $pxtp -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
     #convert the world file to pngw extension
     wld=${target%.*}.wld
     pngw=${target%.*}.pngw
     [ -e "${wld}" ] && mv "${wld}"  "${pngw}"
 done
 
-#convert the phase with imageMagick , which can deal with the alpha channel
-if [ -n "`type -p convert`" ]; then
-    phase=`ls ${mergedir}/DIF_INT/*pha*.tiff* | grep -v grayscale | head -1`
-    [ -n "$phase" ] && convert -alpha activate "${phase}" "${phase%.*}.png"
-    amp=`ls ${mergedir}/DIF_INT/*amp*.tiff* | head -1`
-fi
 
 mv "${phagrayscale}" "${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff"
+mv "${ampgrayscale}" "${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff"
+mv "${cohgrayscale}" "${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff"
 
 
 #create properties files for each png
@@ -478,6 +496,7 @@ ciop-publish -m "${mergedir}/DIF_INT/*.properties"
 
 #publish png and their pngw files
 ciop-publish -m "${mergedir}"/DIF_INT/*.png
+ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
 
 #unwrap
 if [ "${unwrap}" == "true"  ]; then
@@ -556,14 +575,8 @@ EOF
 	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad"   --demdesc="${demmerge}" --outfile="${unwgrayscale}" >> "${mergedir}"/ortho_unw_grayscale.log 2<&1
 
 	[ -n "${unwtif}" ] &&  {
-	    [ ${#aoi[@]} -ge 4 ]   && {
-		target=${mergedir}/temp.tiff
-		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwtif}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
-		mv "${target}" "${unwtif}"	
-		gdalwarp -te ${aoi[0]} ${aoi[1]} ${aoi[2]} ${aoi[3]} -r bilinear "${unwgrayscale}" "${target}" >> ${mergedir}/tiffcrop.log 2<&1
-		mv "${target}" "${unwgrayscale}"
-	    }
-	    convert -alpha activate "${unwtif}" "${unwtif%.*}.png"
+	    #convert -alpha activate "${unwtif}" "${unwtif%.*}.png"
+	    gdal_translate   -oT Byte -of PNG -co worldfile=yes -a_nodata 0 "${unwtif}" "${unwtif%.*}.png" >> "${mergedir}"/ortho.log 2<&1
 	}
 	
 	mv "${unwgrayscale}" "${unwtif}"
@@ -589,7 +602,7 @@ cd ${tiffdir}
 prodzip=${tiffdir}/products.zip
 zip ${prodzip} *.tiff
 ciop-publish -m ${prodzip} || {
-    ciop-log "ERRORR" "Failed to publish products.zip"
+    ciop-log "ERROR" "Failed to publish products.zip"
  }
 cd -
 
