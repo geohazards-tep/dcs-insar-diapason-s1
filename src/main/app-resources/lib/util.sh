@@ -826,3 +826,70 @@ function tiff2wkt(){
    
     return 0
 }
+
+
+
+function download_dem_from_aoi()
+{
+    if [ $# -lt 2 ]; then
+	ciop-log "ERROR" "$FUNCNAME:ref directory "
+	return ${ERRMISSING}
+    fi
+
+    local aoistring="$1"
+    local outputdir="$2"
+    
+    
+        #check for aoi validity
+    local aoiarr=(`echo ${aoistring} | sed 's@,@ @g' `)
+    
+    local nvalues=${#aoiarr[@]}
+    
+    if [ $nvalues -lt 4 ]; then
+	ciop-log "ERROR" "$FUNCTION:Invalid aoi :$aoi"
+	ciop-log "ERROR" "$FUNCTION:Should be of the form: minlon,minlat,maxlon,maxlat"
+	return ${ERRINVALID}
+    fi
+
+    #use a variable for each
+    local maxlon=${aoiarr[2]}
+    local maxlat=${aoiarr[3]}
+    local minlon=${aoiarr[0]}
+    local minlat=${aoiarr[1]}
+
+    
+    local demurl="http://dedibox.altamira-information.com/demdownload?lat="${minlat}"&lat="${maxlat}"&lon="${maxlon}"&lon="${minlon}
+    
+    ciop-log "INFO " "Downloading DEM from ${demurl}"
+    
+    
+    local demtif=${outputdir}/dem.tif
+    
+    local downloadcmd="curl -o \"${demtif}\" \"${demurl}\" " > /dev/null 2<&1
+    
+    eval "${downloadcmd}" > "${outputdir}"//demdownload.log 2<&1
+
+    #check downloaded file
+    if [ ! -e "${demtif}" ]; then
+	ciop-log "ERROR" "Unable to download DEM data"
+	return ${ERRGENERIC}
+    fi
+
+    #check it is a tiff
+    gdalinfo "${demtif}" > /dev/null 2<&1 || {
+	ciop-log "ERROR" "No DEM data over selected area"
+	return ${ERRGENERIC}
+    }
+
+    #resample
+    local tmpdem=${outputdir}/tempo.tif
+    
+    gdalwarp -tr 0.000416666666500 -0.000416666666500 -te ${minlon} ${minlat} ${maxlon} ${maxlat}  -ot Int16 -r bilinear ${demtif} ${tmpdem} || {
+	ciop-log "ERROR" "Failed to resample DEM"
+	return ${ERRGENERIC}
+    }
+    
+    mv ${tmpdem} ${demtif}
+
+    return ${SUCCESS}
+}
