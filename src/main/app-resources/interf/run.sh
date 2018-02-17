@@ -119,7 +119,7 @@ function merge_dems()
     local inputaoi=""
     local aoishape=""
     if [ -n "${aoipath}" ]; then
-	hadoop dfs -copyToLocal "${aoipath}" "${outdir}"
+	ciop-copy "hdfs://${aoipath}" -q -O "${outdir}"
 	local aoifile=${outdir}/`basename "${aoipath}"`
 	inputaoi=`grep -m 1 "[0-9]" ${aoifile}`
     fi
@@ -134,11 +134,11 @@ function merge_dems()
 
     #look for the dems to merge in geotiff
     for dem in `ciop-browseresults -r ${wkid}  -j node_burst | grep -i dem | grep -i tif`; do
-	hadoop dfs -copyToLocal "$dem" "${outdir}"
-	local stcopy=$?
+	ciop-copy "hdfs://${dem}" -q -O "${outdir}"
+ 	local stcopy=$?
 	
 	if [ $stcopy -ne 0 ]; then
-	    ciop-log "ERROR" "Failed command: hadoop dfs -copyToLocal $dem"
+	    ciop-log "ERROR" "Failed command: ciop-copy hdfs://${dem} -q -O ${outdir}"
 	    return $ERRSTGIN
 	fi
 
@@ -211,7 +211,7 @@ function deburst_swath()
 
     # stage in results from previous node
     for r in `ciop-browseresults -r ${wkid}  -j node_burst | grep "SW${swath}_BURST_[0-9]*" | sort -n`; do
-	hadoop dfs -copyToLocal "$r" "${procdir}"
+	ciop-copy "hdfs://${r}" -q -O "${procdir}"
 
 	local status=$?
 
@@ -413,12 +413,12 @@ local wkid=${_WF_ID}
 #copy master and slave id
 local masteridfile=`ciop-browseresults -r "${wkid}" -j node_swath | grep -i masterid | grep -i txt | head -1`
 if [ -n "${masteridfile}" ]; then
-    hadoop dfs -copyToLocal "${masteridfile}" "${mergedir}"
+    ciop-copy "hdfs://${masteridfile}" -q -O "${mergedir}"
 fi
 
 local slaveidfile=`ciop-browseresults -r "${wkid}" -j node_swath | grep -i slaveid | grep -i txt | head -1`
 if [ -n "${masteridfile}" ]; then
-    hadoop dfs -copyToLocal "${slaveidfile}" "${mergedir}"
+    ciop-copy "hdfs://${slaveidfile}" -q -O  "${mergedir}"
 fi
 
 

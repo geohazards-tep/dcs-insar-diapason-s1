@@ -66,7 +66,7 @@ function main()
 	exit $ERRMISSING
     fi
 
-    hadoop dfs -copyToLocal "${pubmaster}" "${serverdir}/CD" 
+    ciop-copy "hdfs://${pubmaster}" -q -O "${serverdir}/CD" 
     local statmaster=$?
     if [ "$statmaster" != "0" ]; then
 	ciop-log "ERROR" "Failed to stage in ${inputdata[0]}"
@@ -89,7 +89,7 @@ function main()
 	exit $ERRMISSING
     fi
     
-    hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
+    ciop-copy  "hdfs://$pubslave" -q -O "${serverdir}/CD"
 
     local statslave=$?
     if [ "$statslave" != "0" ]; then
