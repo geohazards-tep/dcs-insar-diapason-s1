@@ -89,8 +89,7 @@ function main()
     fi
     
     #copy dem
-    hadoop dfs -copyToLocal "${publishdem}" "${serverdir}/DAT"
-    
+    ciop-copy "hdfs://${publishdem}" -q -O "${serverdir}/DAT"
     
     ciop-log "INFO" "input dem is ${publishdem}"
     
@@ -129,8 +128,8 @@ function main()
 	return $ERRMISSING
     fi
 
-    hadoop dfs -copyToLocal "${pubmaster}" "${serverdir}/CD" 
-    
+    ciop-copy "hdfs://${pubmaster}" -q -O "${serverdir}/CD"
+
      statmaster=$?
     if [ "$statmaster" != "0" ]; then
 	ciop-log "ERROR" "Failed to stage in ${inputdata[0]}"
@@ -150,7 +149,7 @@ function main()
 	return $ERRMISSING
     fi
     
-    hadoop dfs -copyToLocal "$pubslave" "${serverdir}/CD"
+    ciop-copy "${pubslave}" -q -O "${serverdur}/CD"
     statslave=$?
     if [ "$statslave" != "0" ]; then
 	ciop-log "ERROR" "Failed to stage in ${inputdata[4]}"
