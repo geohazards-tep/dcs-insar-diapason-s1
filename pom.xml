@@ -11,7 +11,7 @@
     <version>2.0.0</version>
   </parent>
   <description>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</description>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <properties>
     <summary>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</summary>
     <description>Workflow for InSAR processing of Stripmap Data with Diapasno</description>
@@ -28,10 +28,10 @@
     <profile>
       <id>package-app</id>
       <activation>
-         <property>
-           <name>env</name>
-           <value>ci</value>
-         </property>
+        <property>
+          <name>env</name>
+          <value>ci</value>
+        </property>
       </activation>
       <build>
         <plugins>
@@ -48,7 +48,7 @@
                   <!-- Set here the dependencies installed with 'sudo yum install'-->
                   <requires>
                     <require>bash</require>
-		                        <require>bash</require>
+                    <require>bash</require>
                     <require>diapason</require>
                     <require>xmlstarlet</require>
                     <require>lftp</require>
