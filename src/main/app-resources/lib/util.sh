@@ -634,8 +634,8 @@ function product_intersect()
     local ref2="$2"
     
         #look for the extent of the scene
-    local wkt1=($(opensearch-client -f atom "$ref1" wkt ))
-    local wkt2=($(opensearch-client -f atom "$ref2" wkt ))
+    local wkt1=$(opensearch-client -f atom "$ref1" wkt )
+    local wkt2=$(opensearch-client -f atom "$ref2" wkt )
     
     ciop-log "INFO" "$FUNCNAME wkt1: ${wkt1}"
     ciop-log "INFO" "$FUNCNAME wkt2: ${wkt2}"
@@ -672,11 +672,7 @@ function polygon_intersect()
 
     declare -a wkt1=("${!1}")
     declare -a wkt2=("${!2}")
-    
-    ciop-log "INFO" "$FUNCNAME wkt1: ${wkt1}"
-    ciop-log "INFO" "$FUNCNAME wkt2: ${wkt2}"
-    
-    
+      
     /usr/bin/python - <<END
 import sys
 try:
