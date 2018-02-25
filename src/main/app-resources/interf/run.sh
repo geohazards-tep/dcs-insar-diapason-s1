@@ -531,7 +531,7 @@ if [ "${unwrap}" == "true"  ]; then
     
 #now write the geosar inferred parameters                                                             
     ${EXE_DIR}/dump_snaphu_params  >  "${snaphutemp}"   <<EOF  
-"${mergedir}/${master}.geosar"
+${mergedir}/${master}.geosar
 EOF
     
     grep [0-9] "${snaphutemp}" | grep -iv diapason >> "${snaphucfg}"
@@ -589,7 +589,6 @@ EOF
 	
     else
 	ciop-log "ERROR" "Phase unwrapping failed"
-	return ${ERRGENERIC}
     fi
     
 fi
