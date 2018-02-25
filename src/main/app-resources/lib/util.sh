@@ -673,6 +673,9 @@ function polygon_intersect()
     declare -a wkt1=("${!1}")
     declare -a wkt2=("${!2}")
       
+    ciop-log "INFO" "$FUNCNAME wkt1: ${wkt1}"
+    ciop-log "INFO" "$FUNCNAME wkt2: ${wkt2}"
+
     /usr/bin/python - <<END
 import sys
 try:
