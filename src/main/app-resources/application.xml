@@ -25,7 +25,6 @@
 	<parameter id="aoi" title="Area Of Interest" abstract="Restrict processing to selected area [minlon,minlat,maxlon,maxlat]."  scope="runtime"  target="geo:box" type="BoundingBoxData" minOccurs="0" maxOccurs="1"></parameter>
       </defaultParameters>
       <defaultJobconf>       
-	<property id="ciop.job.max.tasks">1</property>
 	<property id="mapred.task.timeout">720000000</property>                      
       </defaultJobconf>
     </jobTemplate>
