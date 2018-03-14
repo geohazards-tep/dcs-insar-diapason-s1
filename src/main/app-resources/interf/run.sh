@@ -378,8 +378,6 @@ sw=`echo $swathlist | awk '{print $1}' | head -1 | sed 's@[^0-9]@@g'`
 local psfiltopt=""
 [ -n "${psfiltx}" ] && psfiltopt="--psfiltx=${psfiltx}"
 
-#interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --winazi=1 --winran=1  --mlaz=1 --mlran=1 --dir="${mergedir}/DIF_INT" --amp --nocoh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   > "${mergedir}"/interf_sw${sw}.log 2<&1
-
 
 interf_sar.pl --prog=interf_sar --master=${mergedir}/${master}.geosar --ci2master="${mergedir}/${master}_SLC.ci2"  --ci2slave="${mergedir}/geo_${slave}_${master}.ci2" --exedir="${EXE_DIR}" --winazi=${mlaz} --winran=${mlran}  --mlaz=1 --mlran=1 --dir="${mergedir}/DIF_INT" --amp --coh --nobort --noran --noinc --outdir="${mergedir}/DIF_INT"  --demdesc="${demmerge}" --slave=${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar --ortho --psfilt "${psfiltopt}" --orthodir="${mergedir}/DIF_INT"   >> "${mergedir}"/interf_sw${sw}.log 2<&1
 
@@ -387,21 +385,29 @@ rm -f "${mergedir}/DIF_INT/amp*ortho*"
 
 ortho.pl --geosar=${mergedir}/${master}.geosar --in="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11.r4" --demdesc="${demmerge}" --tag="amp_${master}_${slave}_ml11" --odir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}"  >> "${mergedir}"/ortho_amp.log 2<&1
 
+#geotiff files
+cohorthotif="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff"
+cohorthotifrgb="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.rgb.tiff"
+amporthotif="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff"
+amporthotifrgb="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.rgb.tiff"
+phaorthotif="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff"
+phaorthotifrgb="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.rgb.tiff"
+unworthotif="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tiff"
+unworthotifrgb="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.rgb.tiff"
+
+
 #create geotiff results
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --colortbl=BLACK-WHITE --min=1 --max=255  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --colortbl=BLACK-WHITE --min=1 --max=255  --demdesc="${demmerge}" --outfile="${cohorthotifrgb}" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --mask  --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --min=1 --max=255 --gep  --colortbl=BLACK-WHITE   --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --mask  --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --min=1 --max=255 --gep  --colortbl=BLACK-WHITE   --demdesc="${demmerge}" --outfile="${amporthotifrgb}" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
 
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad" --mask --alpha="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad"  --demdesc="${demmerge}" --outfile="${phaorthotifrgb}" --colortbl=BLUE-RED  >> "${mergedir}"/pha_ortho_sw${sw}.log 2<&1
 
-phagrayscale="${mergedir}/DIF_INT/pha_${master}_${slave}_ortho_grayscale.tiff"
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad"   --demdesc="${demmerge}" --outfile="${phagrayscale}" >> "${mergedir}"/phagrayscale_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/psfilt_${master}_${slave}_ml11_ortho.rad"   --demdesc="${demmerge}" --outfile="${phaorthotif}" >> "${mergedir}"/phagrayscale_ortho_sw${sw}.log 2<&1
 
-ampgrayscale="${mergedir}/DIF_INT/amp_${master}_${slave}_ortho_grayscale.tiff"
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${ampgrayscale}" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/amp_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${amporthotif}" >> "${mergedir}"/amp_ortho_sw${sw}.log 2<&1
 
-cohgrayscale="${mergedir}/DIF_INT/coh_${master}_${slave}_ortho_grayscale.tiff"
-ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${cohgrayscale}" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
+ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --demdesc="${demmerge}" --outfile="${cohorthotif}" >> "${mergedir}"/coh_ortho_sw${sw}.log 2<&1
 
 
 
@@ -429,10 +435,20 @@ setlatlongeosar.pl --geosar="${mergedir}/${master}.geosar"
 local orbitmaster=`grep "ORBITAL FILE" "${mergedir}/${master}.geosar" | cut -b 40-1024 | sed 's@^[[:space:]]*@@g;s@[[:space:]]*$@@g'`
 local orbitslave=`grep "ORBITAL FILE" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar" | cut -b 40-1024 | sed 's@^[[:space:]]*@@g;s@[[:space:]]*$@@g'`
 
-echo -e "${orbitmaster}\n${orbitslave}" | alt_ambig.pl --geosar="${mergedir}/${master}.geosar" -o "${ambigdat}"
+echo -e "${orbitmaster}\n${orbitslave}" | alt_ambig.pl --geosar="${mergedir}/${master}.geosar" -o "${ambigdat}" > /dev/null 2<&1
 
 if [ ! -e "${ambigdat}" ]; then
     ciop-log "Info" "Missing AMBIG.dat file"
+fi
+
+local altambiginfo=($(grep -E "^[0-9]+" "${ambigdat}" | head -1))
+local bperp=""
+
+if [  ${#altambiginfo[@]} -ge 6 ]; then
+    bperp=${altambiginfo[4]}
+    ciop-log "INFO" "BPERP $bperp"
+else
+    ciop-log "INFO" "Invalid format for AMBIG.DAT file "
 fi
 
 
@@ -444,59 +460,15 @@ echo "${wkt}" > ${mergedir}/wkt.txt
 #ciop-publish -m "${mergedir}/DIF_INT/*.tiff" 
 mkdir -p ${procdir}/log 2>/dev/null
 
-find ${procdir} -iname "*.log" -exec cp '{}' ${procdir}/log  \;
-find ${procdir} -iname "*list*.txt" -exec cp '{}' ${procdir}/log  \;
-local logzip="${procdir}/TEMP/logs.zip"
-cd "${procdir}"
-zip "${logzip}" log/*
-ciop-publish -m "${logzip}"
-cd -
-
-#convert all the tif files to png so that the results can be seen on the GeoBrowser
-
-#first do the coherence and amplitude ,for which 0 is a no-data value
-for tif in `find "${mergedir}/DIF_INT/"*.tiff* -print | grep -v grayscale`; do
-    target=${tif%.*}.png
-    #special case of amplitude image
-    fname=`basename $tif`
-    isamp=`echo $fname | grep "amp.*\.tif"`
-    scaleopt=""
-    pxtp="Byte"
- #   if [ -n "${isamp}" ]; then
-	#get min and max values passed to -scale option of gdal_translate
-#	image_equalize_range "${tif}" scalemin scalemax
-#	status=$?
-#	[ $status -eq 0 ] && {
-#	    scaleopt="${scalemin} $scalemax 0 65535"
-	#}
-	#pxtp=UInt16
-    #fi
-    gdal_translate  ${scaleopt} -oT $pxtp -of PNG -co worldfile=yes -a_nodata 0 "${tif}" "${target}" >> "${mergedir}"/ortho.log 2<&1
-    #convert the world file to pngw extension
-    wld=${target%.*}.wld
-    pngw=${target%.*}.pngw
-    [ -e "${wld}" ] && mv "${wld}"  "${pngw}"
-done
-
-
-mv "${phagrayscale}" "${mergedir}/DIF_INT/pha_${master}_${slave}_ortho.tiff"
-mv "${ampgrayscale}" "${mergedir}/DIF_INT/amp_${master}_${slave}_ortho.tiff"
-mv "${cohgrayscale}" "${mergedir}/DIF_INT/coh_${master}_${slave}_ortho.tiff"
 
 
 #create properties files for each png
-create_interf_properties "`ls ${mergedir}/DIF_INT/amp*.png | head -1`" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+create_interf_properties "${amporthotif}" "Interferometric Amplitude" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
-create_interf_properties "`ls ${mergedir}/DIF_INT/pha*.png | head -1`" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+create_interf_properties "${phaorthotif}" "Interferometric Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
-create_interf_properties "`ls ${mergedir}/DIF_INT/coh*.png | head -1`" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
+create_interf_properties "${cohorthotif}" "Interferometric Coherence" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 
-#publish the properties files
-ciop-publish -m "${mergedir}/DIF_INT/*.properties"
-
-#publish png and their pngw files
-ciop-publish -m "${mergedir}"/DIF_INT/*.png
-ciop-publish -m "${mergedir}"/DIF_INT/*.pngw
 
 #unwrap
 if [ "${unwrap}" == "true"  ]; then
@@ -516,7 +488,9 @@ if [ "${unwrap}" == "true"  ]; then
 #BPERP                                                                                                               
     bortfile=${mergedir}/DIF_INT/bort_${master}_${slave}_ml${unwmlaz}${unwmlran}.r4
 
-    bperp=`view_raster.pl --file="${bortfile}" --type=r4 --count=1000 | awk '{v = $1 ; avg += v ;} END { print avg/NR }'`
+    if [ -z "$bperp" ]; then
+	bperp=`view_raster.pl --file="${bortfile}" --type=r4 --count=1000 | awk '{v = $1 ; avg += v ;} END { print avg/NR }'`
+    fi
     echo "BPERP ${bperp}" >> "${snaphucfg}"
     
     lnspc=`grep "LINE SPACING" "${mergedir}/${master}.geosar" | cut -b 40-1024 | sed 's@[[:space:]]@@g'`
@@ -569,23 +543,15 @@ EOF
         #run ortho on unwrapped phase
 	ciop-log "INFO"  "Running Unwrapping results ortho-projection"
 	ortho.pl --geosar="${mergedir}/${master}.geosar" --real  --mlaz="${unwmlaz}" --mlran="${unwmlran}"  --odir="${mergedir}/DIF_INT" --exedir="${EXE_DIR}" --tag="unw_${master}_${slave}_ml${unwmlaz}${unwmlran}" --in="${unwpha}" --demdesc="${demmerge}"   > "${mergedir}"/ortho_unw.log 2<&1
-	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad" --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --min=1 --max=255 --colortbl=BLUE-RED  --demdesc="${demmerge}" --outfile="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tiff" >> "${mergedir}"/ortho_unw.log 2<&1
-	unwtif="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho.tiff"
-	unwgrayscale="${mergedir}/DIF_INT/unw_${master}_${slave}_ortho_grayscale.tiff"
-	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad"   --demdesc="${demmerge}" --outfile="${unwgrayscale}" >> "${mergedir}"/ortho_unw_grayscale.log 2<&1
+	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad" --alpha="${mergedir}/DIF_INT/coh_${master}_${slave}_ml11_ortho.rad" --mask --min=1 --max=255 --colortbl=BLUE-RED  --demdesc="${demmerge}" --outfile="${unworthotifrgb}" >> "${mergedir}"/ortho_unw.log 2<&1
+       	
+	ortho2geotiff.pl --ortho="${mergedir}/DIF_INT/unw_${master}_${slave}_ml${unwmlaz}${unwmlran}_ortho.rad"   --demdesc="${demmerge}" --outfile="${unworthotif}" >> "${mergedir}"/ortho_unw_grayscale.log 2<&1
 
-	[ -n "${unwtif}" ] &&  {
-	    #convert -alpha activate "${unwtif}" "${unwtif%.*}.png"
-	    gdal_translate   -oT Byte -of PNG -co worldfile=yes -a_nodata 0 "${unwtif}" "${unwtif%.*}.png" >> "${mergedir}"/ortho.log 2<&1
-	}
+	gdaladdo -r average ${unworthotifrgb} 2 4 8
 	
-	mv "${unwgrayscale}" "${unwtif}"
+	create_interf_properties "${unworthotif}" "Unwrapped Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 	
-
-	create_interf_properties "`ls ${mergedir}/DIF_INT/unw*.png | head -1`" "Unwrapped Phase" "${mergedir}" "${mergedir}/${master}.geosar" "${procdir}/SW${sw}_DEBURST/DAT/GEOSAR/${slave}.geosar"
 	
-	ciop-publish -m ${mergedir}/DIF_INT/unw*.png
-	ciop-publish -m ${mergedir}/DIF_INT/unw*.properties
 	
     else
 	ciop-log "ERROR" "Phase unwrapping failed"
@@ -593,17 +559,26 @@ EOF
     
 fi
 
-#pack all the geotiff
-local tiffdir="${mergedir}/GEOTIFF"
-mkdir -p  "${tiffdir}"
-find ${mergedir}/DIF_INT/ -name "*.tiff" -exec mv '{}' ${tiffdir} \;
-cd ${tiffdir}
-prodzip=${tiffdir}/products.zip
-zip ${prodzip} *.tiff
-ciop-publish -m ${prodzip} || {
-    ciop-log "ERROR" "Failed to publish products.zip"
- }
+#publish the properties files
+ciop-publish -m "${mergedir}/DIF_INT/*.properties"
+
+#publish tiff files
+gdaladdo -r average "${cohorthotifrgb}" 2 4 8
+gdaladdo -r average "${amporthotifrgb}" 2 4 8
+gdaladdo -r average "${phaorthotifrgb}" 2 4 8
+	
+
+ciop-publish -m "${mergedir}"/DIF_INT/*.tiff
+
+find ${procdir} -iname "*.log" -exec cp '{}' ${procdir}/log  \;
+find ${procdir} -iname "*list*.txt" -exec cp '{}' ${procdir}/log  \;
+local logzip="${procdir}/TEMP/logs.zip"
+cd "${procdir}"
+zip "${logzip}" log/*
+ciop-publish -m "${logzip}"
 cd -
+
+
 
 return ${SUCCESS}
 
