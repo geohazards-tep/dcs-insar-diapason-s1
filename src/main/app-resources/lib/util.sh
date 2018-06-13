@@ -136,7 +136,7 @@ get_data() {
   [ $res -eq 0 ] && [ -z "${enclosure}" ] && return ${ERR_GETDATA}                                                                                               
   [ $res -ne 0 ] && enclosure=${ref}                                                                                                                             
                                                                                                                                                                  
-  local_file="$( echo ${enclosure} | ciop-copy -f -U -O ${target} - 2> /dev/null )"                                                                              
+  local_file="$( echo ${enclosure%/} | ciop-copy -f -U -O ${target} - 2> /dev/null )"                                                                              
   res=$?                                                                                                                                                         
   [ ${res} -ne 0 ] && return ${res}                                                                                                                              
   echo ${local_file}                                                                                                                                             
