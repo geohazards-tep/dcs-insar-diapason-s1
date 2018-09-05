@@ -26,6 +26,25 @@ function trapFunction()
 function extract_safe() {
   safe_archive=${1}
   optional=${2}
+
+  if [ -d "${safe_archive}" ]; then
+      local safedir=`find ${safe_archive} -type d -name "*.SAFE" -exec readlink -f '{}' \; | tail -1`
+      [ -n "${safedir}" ] && {
+	  #remove files from unneeded polarisations
+	  if [ -n "$pol" ]; then
+	      for file in `find "${safedir}" -type f -iname "*s1[ab]*.xml" -print -o -iname "*s1[ab]*.tiff" -print | grep -iv "\-${pol}\-"`;do
+		  ciop-log "INFO" "Removing file $file"
+		  rm ${file} > /dev/null 2<&1
+	      done
+	  fi
+	  echo ${safedir}
+	  return $SUCCESS
+      }
+      
+      echo `readlink -f ${safe_archive}`
+      return $SUCCESS
+  fi 
+
   safe=$( unzip -l ${safe_archive} | grep "SAFE" | grep -v zip | head -n 1 | awk '{ print $4 }' | xargs -I {} basename {} )
 
   [ -n "${optional}" ] && safe=${optional}/${safe}
@@ -120,6 +139,21 @@ function main(){
   [ -z "${datadir}" ] && {
       datadir="${TMPDIR}"
 }
+
+  #check images before downloading
+  ref_check ${masterref} || {
+      ciop-log "ERROR" "Input master image unsupported"
+      return $ERRINVALID
+  }
+  
+  ref_check ${slaveref} || {
+      ciop-log "ERROR" "Input slave image unsupported"
+      return $ERRINVALID
+  }
+
+
+
+
   #make sure the master and slave image intesect !
   product_intersect "${masterref}" "${slaveref}" || {
       ciop-log "ERROR : slave and master image do not intersect"
@@ -149,36 +183,23 @@ function main(){
 }
   ciop-log "INFO" "local slave is ${slave}"
 
-  #master input check
-  product_check "${master}" || {
-    status=$?
-    ciop-log "ERROR : invalid  master input"
-    exit $status
-}
-
-  #slave input check
-  product_check "${slave}" || {
-    status=$?
-    ciop-log "ERROR : invalid slave input"
-    exit $status
-}
   
-  masterinfo=($(product_name_parse "${master}"))
-  slaveinfo=($(product_name_parse "${slave}"))
-
+  masterinfo=($(opensearch-client -m EOP  "${masterref}" operationalMode))
+  slaveinfo=($(opensearch-client -m EOP "${slaveref}" operationalMode))
+  
 #make sure master and slave modes match (IW and IW , or EW and EW)
-  if [ "${masterinfo[1]}"  !=  "${slaveinfo[1]}" ]; then
+  if [ "${masterinfo}"  !=  "${slaveinfo}" ]; then
       ciop-log "ERROR : slave and master image are from different modes"
       exit ${ERRINVALID}
 fi
 
 
 
-mode="${masterinfo[1]}"
+mode="${masterinfo}"
 nswaths=0
 case $mode in
-    IW)nswaths=3;;
-    EW)nswaths=5;;
+    *IW*)nswaths=3;;
+    *EW*)nswaths=5;;
     *)nswaths=0;;
 esac
 
@@ -220,7 +241,9 @@ done
 #stage-out the results
 ciop-publish "${master_safe}" -r -a || return $?
 ciop-publish "${slave_safe}" -r -a || return $?
-
+local fslist=`find ${master_safe} -type f -print`
+ciop-log "DEBUG" "Master folder file list"
+ciop-log "DEBUG" "${fslist}"
 
 }
 
