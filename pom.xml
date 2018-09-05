@@ -8,7 +8,7 @@
   <parent>
     <groupId>com.terradue</groupId>
     <artifactId>dcs-bash-parent</artifactId>
-    <version>3.0.0-docker</version>
+    <version>3.0.1-docker</version>
   </parent>
   <description>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</description>
   <version>1.1.2</version>
