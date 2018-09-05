@@ -99,6 +99,24 @@ function get_slave_deburst_input()
 }
 
 
+function check_dems()
+{
+    if [ $# -lt 1 ]; then
+	return $ERRMISSING
+    fi
+
+    local wkid_="$1"
+    declare -a demlist
+    demlist=(`ciop-browseresults -r ${wkid_}  -j node_burst | grep -i dem | grep -i tif`)
+    
+    if [ ${#demlist[@]}  -le 0 ]; then
+	return $ERRMISSING
+    fi
+
+    return $SUCCESS
+    
+}
+
 
 function merge_dems()
 {
@@ -618,6 +636,13 @@ export nodecleanup=(`ciop-getparam cleanup`)
 export psfiltx=(`ciop-getparam psfiltx`)
 #unwrap option
 export unwrap=(`ciop-getparam unwrap`)
+
+#check for dems
+check_dems ${_WF_ID} || {
+    ciop-log "ERROR" "No DEM found"
+    exit ${ERRGENERIC}
+}
+
 
 while read data
 do

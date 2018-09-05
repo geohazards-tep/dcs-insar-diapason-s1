@@ -61,7 +61,10 @@ function main()
     local pubmaster=`ciop-browseresults -r ${wkid} -j node_swath | grep ${inputdata[0]} | head -1`
     
     if [ -z "${pubmaster}" ]; then
-	ciop-log "ERROR" "Failed to locate master safe"
+	ciop-log "ERROR" "Failed to locate master safe tag ${inputdata[0]}"
+	local cmdout=`ciop-browseresults -r ${wkid} -j node_swath `
+	ciop-log "DEBUG" "checking output of command : ciop-browseresults -r ${wkid} -j node_swath"
+	ciop-log "DEBUG" "command output :-->${cmdout}<--"
 	procCleanup
 	exit $ERRMISSING
     fi
@@ -84,7 +87,10 @@ function main()
     local pubslave=`ciop-browseresults -r ${wkid}  -j node_swath | grep ${inputdata[2]} | head -1`
     
     if [ -z "${pubslave}" ]; then
-	ciop-log "ERROR" "Failed to locate slave safe"
+	ciop-log "ERROR" "Failed to locate slave safe ${inputdata[2]}"
+	local cmdout=`ciop-browseresults -r ${wkid} -j node_swath | grep ${inputdata[2]}`
+	ciop-log "DEBUG" "checking output of command : ciop-browseresults -r ${wkid} -j node_swath | grep ${inputdata[2]}"
+	ciop-log "DEBUG" "command output :-->${cmdout}<--"
 	procCleanup
 	exit $ERRMISSING
     fi

@@ -120,6 +120,41 @@ return ${SUCCESS}
 }
 
 
+function ref_check()
+{
+    if [ $# -lt 1 ]; then
+	return ${ERRMISSING}
+    fi
+
+    #input should be a catalogue reference
+    local inref="$1"
+
+    #only support sentinel data
+    local platform=`opensearch-client -m EOP "${inref}" platform | sed 's@[[:space:]]*@@g'`
+    
+    if [[ ! "${platform}" =~ ^S1[A-Z] ]]; then
+	ciop-log "ERROR" "invalid or unsupported platform ${platform}"
+	return ${ERRINVALID}
+    fi
+
+    #product should be SLC
+    local level=`opensearch-client -m EOP "${inref}" productType | sed 's@[[:space:]]*@@g'`
+    
+    if [ "${level}" != "SLC" ]; then
+	ciop-log "ERROR" "invalid or unsupported processing level $level" 
+	return ${ERRINVALID}
+    fi
+
+    #data acquisition mode should be IW or EW
+    local acqmode=`opensearch-client -m EOP "${inref}" operationalMode | sed 's@[[:space:]]*@@g'`
+    if [[ ! "${acqmode}" =~ IW|EW ]]; then
+	ciop-log "ERROR" "Acquisition Mode ${acqmode} not supported"
+	return ${ERRINVALID}
+    fi
+
+    return $SUCCESS
+}
+
 
 get_data() {                                                                                                                                                     
   local ref=$1                                                                                                                                                   
