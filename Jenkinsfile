@@ -5,7 +5,7 @@ pipeline {
   }
 
   environment {
-        PATH="/opt/anaconda/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/puppetlabs/bin"
+        PATH="/opt/anaconda/bin:$PATH"
   }
 
   agent {
