@@ -65,6 +65,8 @@
                     <require>gdalcrop</require>
                     <require>perl-DBD-SQLite</require>
                     <require>procmail</require>
+		    <require>perl-JSON</require>
+		    <require>perl-LWP-UserAgent-Determined</require>
                   </requires>
                 </configuration>
               </execution>
