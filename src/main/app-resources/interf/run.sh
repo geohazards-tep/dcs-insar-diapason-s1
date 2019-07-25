@@ -593,7 +593,8 @@ find ${procdir} -iname "*list*.txt" -exec cp '{}' ${procdir}/log  \;
 local logzip="${procdir}/TEMP/logs.zip"
 cd "${procdir}"
 zip "${logzip}" log/*
-ciop-publish -m "${logzip}"
+# The log.zip publishing has been stopped as requested on DCS-384
+# ciop-publish -m "${logzip}"
 cd -
 
 

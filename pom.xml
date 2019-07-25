@@ -11,7 +11,7 @@
     <version>2.0.0</version>
   </parent>
   <description>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</description>
-  <version>1.1.4</version>
+  <version>1.1.5</version>
   <properties>
     <summary>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</summary>
     <description>Workflow for InSAR processing of Stripmap Data with Diapasno</description>
@@ -65,6 +65,9 @@
                     <require>gdalcrop</require>
                     <require>perl-DBD-SQLite</require>
                     <require>procmail</require>
+                    <require>ncompress</require>
+                    <require>perl-JSON</require>
+                    <require>perl-LWP-UserAgent-Determined</require>
                   </requires>
                 </configuration>
               </execution>
