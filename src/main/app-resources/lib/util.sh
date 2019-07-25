@@ -422,7 +422,7 @@ function create_interf_properties()
     local propfile="${inputfile}.properties"
     echo "title = DIAPASON InSAR Sentinel-1 TOPSAR(IW,EW) - ${description} - ${datestart} ${dateend}" > "${propfile}"
     echo "Description = ${description}" >> "${propfile}"
-    echo "Date = ${datestart}/${dateend} " >> "${propfile}"
+    echo "date = ${datestart}/${dateend} " >> "${propfile}"
     local sensor=`grep -h "SENSOR NAME" "${geosarm}" | cut -b 40-1024 | awk '{print $1}'`
     echo "Sensor\ Name = ${sensor}" >> "${propfile}"
     local masterid=`head -1 ${serverdir}/masterid.txt`
