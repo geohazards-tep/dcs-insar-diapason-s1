@@ -333,7 +333,7 @@ function get_DEM()
 	return ${ERRGENERIC}
     fi
     
-    url="http://dedibox.altamira-information.com/demdownload?lat="${latitudes[0]}"&lat="${latitudes[1]}"&lon="${longitudes[0]}"&lon="${longitudes[1]}
+    url="http://dedibox.tre-altamira.com/demdownload?lat="${latitudes[0]}"&lat="${latitudes[1]}"&lon="${longitudes[0]}"&lon="${longitudes[1]}
     
     ciop-log "INFO : Downloading DEM from ${url}"
     
@@ -535,7 +535,7 @@ function download_dem_from_ref()
 
     
     
-    local demurl="http://dedibox.altamira-information.com/demdownload?lat="${lat[0]}"&lat="${lat[1]}"&lon="${lon[0]}"&lon="${lon[1]}
+    local demurl="http://dedibox.tre-altamira.com/demdownload?lat="${lat[0]}"&lat="${lat[1]}"&lon="${lon[0]}"&lon="${lon[1]}
     
     ciop-log "INFO " "Downloading DEM from ${demurl}"
     
@@ -893,7 +893,7 @@ function download_dem_from_aoi()
     local minlat=${aoiarr[1]}
 
     
-    local demurl="http://dedibox.altamira-information.com/demdownload?lat="${minlat}"&lat="${maxlat}"&lon="${maxlon}"&lon="${minlon}
+    local demurl="http://dedibox.tre-altamira.com/demdownload?lat="${minlat}"&lat="${maxlat}"&lon="${maxlon}"&lon="${minlon}
     
     ciop-log "INFO " "Downloading DEM from ${demurl}"
     
