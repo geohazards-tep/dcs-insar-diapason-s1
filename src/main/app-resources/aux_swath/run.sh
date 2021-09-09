@@ -120,8 +120,8 @@ function get_POEORB() {
   startdate="$( opensearch-client "${S1_ref}" startdate)" 
   enddate="$( opensearch-client "${S1_ref}" enddate)" 
   
-  aux_list=$( opensearch-client  "http://data.terradue.com/gs/catalogue/aux/gtfeature/search?q=AUX_POERB&start=${startdate}&stop=${enddate}" enclosure )
-
+  #aux_list=$( opensearch-client  "http://data.terradue.com/gs/catalogue/aux/gtfeature/search?q=AUX_POERB&start=${startdate}&stop=${enddate}" enclosure )
+  aux_list=$( opensearch-client  "https://catalog.terradue.com/sentinel1-aux/search?pt=POEORB&start=${startdate}&stop=${stopdate}&do=terradue" enclosure)
   [ -z "${aux_list}" ] && return 1
 
   echo ${aux_list} | ciop-copy -o ${aux_dest} -
