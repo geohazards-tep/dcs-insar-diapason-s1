@@ -11,7 +11,7 @@
     <version>2.0.0</version>
   </parent>
   <description>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</description>
-  <version>1.1.10-SNAPSHOT</version>
+  <version>1.1.10</version>
   <properties>
     <summary>Workflow for InSAR processing of Sentinel-1 TOPSAR (IW) Data with DIAPASON</summary>
     <description>Workflow for InSAR processing of Stripmap Data with Diapasno</description>
