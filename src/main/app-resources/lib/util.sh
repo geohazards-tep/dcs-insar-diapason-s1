@@ -292,6 +292,9 @@ function get_POEORB() {
 
   #aux_list=$( opensearch-client  "http://data.terradue.com/gs/catalogue/aux/gtfeature/search?q=AUX_POEORB&start=${startdate}&stop=${enddate}" enclosure )
   aux_list=$( opensearch-client  "https://catalog.terradue.com/sentinel1-aux/search?pt=POEORB&start=${startdate}&stop=${stopdate}&do=terradue" enclosure)
+  
+  ciop-log "INFO" "aux orbit list : ${aux_list}"
+  
   [ -z "${aux_list}" ] && return 1
 
   echo ${aux_list} | ciop-copy -o ${aux_dest} -
